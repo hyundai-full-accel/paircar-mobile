@@ -35,8 +35,11 @@ const auth: Middleware = {
   },
 }
 
-// 같은 출처의 /api를 부름. 개발 때는 Vite 프록시, 배포 때는 nginx가 서버로 넘김
-export const api = createClient<paths>({ baseUrl: '' })
+// 서버 주소. 웹과 서버를 따로 배포하므로 배포 때는 VITE_API_BASE_URL로 넣음
+// 비어 있으면 같은 출처의 /api를 부름 (개발 때 Vite 프록시가 로컬 서버로 넘김)
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+
+export const api = createClient<paths>({ baseUrl: API_BASE_URL })
 api.use(auth)
 
 /**

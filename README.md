@@ -20,7 +20,7 @@ npm run dev
 ```
 
 - `http://localhost:3000`
-- `/api` 요청은 Vite가 `http://localhost`(서버 nginx)로 넘깁니다. CORS 설정이 필요 없습니다.
+- `VITE_API_BASE_URL`이 비어 있으면 `/api` 요청을 Vite가 `http://localhost`(서버 nginx)로 넘깁니다.
 
 ## 스크립트
 
@@ -75,4 +75,22 @@ const me = await unwrap(api.GET('/api/members/me'))
 
 ## 배포
 
-`npm run build` 결과(`dist/`)는 정적 파일입니다. 서버 nginx에서 `/api` 외의 경로로 서빙하면 같은 도메인이라 CORS가 필요 없습니다.
+서버와 따로 배포합니다. `npm run build` 결과(`dist/`)는 정적 파일이라 정적 호스팅(Vercel, Netlify, Cloudflare Pages, S3 + CloudFront 등) 어디든 올릴 수 있습니다.
+
+1. 빌드할 때 서버 주소를 넣습니다 (호스팅 환경변수 또는 `.env.production.local`). `.env.example` 참고
+
+   ```
+   VITE_API_BASE_URL=https://api.paircar.app
+   ```
+
+2. 서버 `infra/.env`에 웹 주소를 넣습니다
+
+   ```
+   PAIRCAR_CORS_ALLOWED_ORIGINS=https://app.paircar.app
+   PAIRCAR_INVITE_BASE_URL=https://app.paircar.app/join
+   ```
+
+3. 호스팅에서 설정할 것
+   - **SPA 폴백:** 없는 경로(`/join/ABCD2345`, `/trips/12`)는 `index.html`로 응답
+   - **`sw.js`는 캐시하지 않음** (`Cache-Control: no-cache`). 캐시되면 새 버전이 늦게 퍼짐
+   - **HTTPS 필수** (서비스 워커, 폰 알림)
