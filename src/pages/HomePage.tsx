@@ -1,22 +1,40 @@
+import { ChevronRight, Users } from 'lucide-react'
+import { Link, Navigate } from 'react-router'
 import { Card } from '../components/Card'
 import { Page } from '../components/Page'
-import { ErrorView, LoadingView } from '../components/StatusView'
-import { useMe } from '../hooks/useMe'
+import { EmptyView, ErrorView, LoadingView } from '../components/StatusView'
+import { useMyCrews } from '../hooks/useCrew'
 
-// 크루 홈 (2단계에서 크루 정보, 진행 중 운행을 붙임)
+// 내 크루 목록. 크루가 하나면(대부분) 바로 그 크루 홈으로 감
 export function HomePage() {
-  const { data: me, isPending, error, refetch } = useMe()
+  const { data: crews, isPending, error, refetch } = useMyCrews()
+
+  if (crews?.length === 1) return <Navigate to={`/crews/${crews[0].crewId}`} replace />
 
   return (
-    <Page title="페어카">
+    <Page title="내 크루">
       {isPending ? (
         <LoadingView />
       ) : error ? (
         <ErrorView error={error} onRetry={() => refetch()} />
+      ) : crews.length === 0 ? (
+        <EmptyView message="아직 참여한 크루가 없어요. 운전자에게 받은 초대 링크로 들어와 주세요." />
       ) : (
-        <Card>
-          <p className="text-gray-700">{me.nickname}님, 안녕하세요.</p>
-        </Card>
+        <ul className="flex flex-col gap-3">
+          {crews.map((crew) => (
+            <li key={crew.crewId}>
+              <Link to={`/crews/${crew.crewId}`}>
+                <Card className="flex items-center gap-3 active:bg-gray-50">
+                  <div className="flex size-10 items-center justify-center rounded-full bg-brand-soft text-brand">
+                    <Users className="size-5" />
+                  </div>
+                  <span className="flex-1 font-semibold">{crew.name}</span>
+                  <ChevronRight className="size-5 text-gray-400" />
+                </Card>
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
     </Page>
   )

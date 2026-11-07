@@ -39,7 +39,7 @@ export function JoinPage() {
             </div>
             <p className="text-xs text-gray-400">{formatMonthDay(invite.expiresAt)}까지 유효한 초대예요</p>
           </Card>
-          {token ? <JoinAsMember code={code} /> : <JoinAsNewMember code={code} />}
+          {token ? <JoinAsMember code={code} crewId={invite.crewId} /> : <JoinAsNewMember code={code} />}
         </>
       )}
     </Page>
@@ -106,8 +106,8 @@ function JoinAsNewMember({ code }: { code: string }) {
   )
 }
 
-function JoinAsMember({ code }: { code: string }) {
-  const join = useJoinAsMember(code)
+function JoinAsMember({ code, crewId }: { code: string; crewId: number }) {
+  const join = useJoinAsMember(code, crewId)
 
   return (
     <div className="flex flex-col gap-3">
