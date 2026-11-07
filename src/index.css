@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* Pretendard: 화면에 쓰인 글자가 든 조각(woff2)만 내려받는 dynamic subset */
+@import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 
 /* 페어카 색 (디자이너 시안 webimg 기준). 컴포넌트는 text-ink, bg-surface처럼 이 이름으로 씀 */
 @theme {
@@ -13,7 +15,7 @@
   --color-brand: #3178f6; /* 강조 (선택된 달, 타임라인 점) */
   --color-brand-strong: #1f5fd8;
   --color-brand-soft: #edf3fe;
-  --font-sans: -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
 }
 
 @layer base {
