@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, unwrap } from '../api/client'
 import { useMe } from './useMe'
 
@@ -56,4 +56,16 @@ export function useCrewView(crewId: number) {
     error: crew.error ?? members.error ?? me.error,
     refetch: () => Promise.all([crew.refetch(), members.refetch(), me.refetch()]),
   }
+}
+
+// 지금 정산 기준(나누는 방법, 운전자 포함)에 동의. 정산 방식이 바뀌면 다시 받음
+export function useAgreeSettlement(crewId: number, crewMemberId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.POST('/api/crews/{crewId}/members/{crewMemberId}/settlement-agreement', { params: { path: { crewId, crewMemberId } } }),
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['crews', crewId, 'members'] }),
+  })
 }

@@ -89,6 +89,7 @@ function applyToCache(queryClient: QueryClient, event: LiveEvent) {
       void queryClient.invalidateQueries({ queryKey: ['crews', event.data.crewId, 'detours'] })
       break
     case 'receipt.issued':
+    case 'receipt.inquiry-created':
       void queryClient.invalidateQueries({ queryKey: ['receipts'] })
       break
   }

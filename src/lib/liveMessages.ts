@@ -27,6 +27,12 @@ export function noticeOf(event: LiveEvent): LiveNotice | null {
         body: `보낼 금액 ${event.data.amountWon.toLocaleString('ko-KR')}원`,
         url: `/receipts/${event.data.receiptId}`,
       }
+    case 'receipt.inquiry-created':
+      return {
+        title: `${event.data.requesterNickname}님이 ${Number(event.data.month.split('-')[1])}월 영수증 확인을 요청했어요`,
+        body: event.data.message,
+        url: `/receipts/${event.data.receiptId}`,
+      }
     default:
       return null
   }

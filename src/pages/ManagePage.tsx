@@ -138,7 +138,10 @@ function MemberCard({ members, me }: { members: CrewMember[]; me: CrewMember }) 
               {member.nickname}
               {member.crewMemberId === me.crewMemberId && <span className="ml-1.5 text-xs text-brand">나</span>}
             </span>
-            <span className="text-sub">{member.driver ? '운전자' : '동승자'}</span>
+            <span className="text-sub">
+              {member.driver ? '운전자' : '동승자'}
+              {!member.driver && !member.settlementAgreed && <span className="ml-1 text-xs text-muted">· 정산 동의 전</span>}
+            </span>
           </li>
         ))}
       </ul>

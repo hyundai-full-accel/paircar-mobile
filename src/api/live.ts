@@ -30,6 +30,7 @@ export type LiveEventMap = {
     passengerNickname: string
   }
   'receipt.issued': { receiptId: number; month: string; amountWon: number; payeeNickname: string }
+  'receipt.inquiry-created': { receiptId: number; inquiryId: number; month: string; requesterNickname: string; message: string }
 }
 
 export type LiveEventType = keyof LiveEventMap
@@ -45,6 +46,7 @@ export const LIVE_EVENT_TYPES = [
   'rider.attendance-changed',
   'detour.confirm-requested',
   'receipt.issued',
+  'receipt.inquiry-created',
 ] as const satisfies readonly LiveEventType[]
 
 export type LiveEvent = {

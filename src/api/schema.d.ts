@@ -415,6 +415,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/receipts/{receiptId}/inquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 기록 확인 요청 목록
+         * @description 영수증의 내는 사람, 받는 사람만 볼 수 있습니다.
+         */
+        get: operations["getInquiries"];
+        put?: never;
+        /**
+         * 기록 확인 요청
+         * @description 영수증의 내는 사람이 "이 기록에 문제가 있나요?"로 운전자에게 확인을 요청합니다. 영수증은 바뀌지 않습니다. 운전자에게 receipt.inquiry-created(SSE + Push)가 갑니다.
+         */
+        post: operations["createInquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/receipts/{receiptId}/inquiries/{inquiryId}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 기록 확인 처리
+         * @description 받는 사람(운전자)이 확인하고 처리했다고 표시합니다.
+         */
+        post: operations["resolveInquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/members": {
         parameters: {
             query?: never;
@@ -554,6 +598,26 @@ export interface paths {
          * @description 같은 크루에 같은 이름이 있으면 CREW_PLACE_NAME_DUPLICATED입니다.
          */
         post: operations["registerPlace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/crews/{crewId}/members/{crewMemberId}/settlement-agreement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 정산 기준 동의
+         * @description 지금 크루의 정산 방식(나누는 방법, 운전자 포함)에 동의합니다. 본인만 할 수 있습니다. 동의 뒤 정산 방식이 바뀌면 크루원 목록의 settlementAgreed가 false가 되어 다시 동의를 받습니다.
+         */
+        post: operations["agreeSettlement"];
         delete?: never;
         options?: never;
         head?: never;
@@ -706,7 +770,7 @@ export interface paths {
         };
         /**
          * 실시간 이벤트 구독 (SSE)
-         * @description 연결되면 먼저 connected 이벤트가 옵니다. 25초마다 keepalive 주석이 옵니다. 동승자: trip.started, vehicle.location, vehicle.approaching, vehicle.arrived, rider.boarded, driver.delayed, trip.ended. 운전자: rider.delayed, rider.here, rider.absent, rider.place-changed. 크루 멤버 모두: rider.attendance-changed (출발 전 출석 변경, data에 serviceDate), detour.confirm-requested.
+         * @description 연결되면 먼저 connected 이벤트가 옵니다. 25초마다 keepalive 주석이 옵니다. 동승자: trip.started, vehicle.location, vehicle.approaching, vehicle.arrived, rider.boarded, driver.delayed, trip.ended. 운전자: rider.delayed, rider.here, rider.absent, rider.place-changed. 크루 멤버 모두: rider.attendance-changed (출발 전 출석 변경, data에 serviceDate), detour.confirm-requested. 영수증: receipt.issued (내는 사람), receipt.inquiry-created (받는 사람).
          */
         get: operations["subscribe_1"];
         put?: never;
@@ -1127,6 +1191,13 @@ export interface components {
              * @example 07:32
              */
             pickupTime?: string | null;
+            /**
+             * Format: date-time
+             * @description 정산 기준에 동의한 시각
+             */
+            settlementAgreedAt?: string | null;
+            /** @description 지금 정산 방식에 동의했는지. 동의 뒤 정산 방식이 바뀌면 false */
+            settlementAgreed: boolean;
         };
         AttendanceRequest: {
             /**
@@ -1402,6 +1473,32 @@ export interface components {
              */
             odometerKm: number;
         };
+        ReceiptInquiryRequest: {
+            /**
+             * @description 무엇이 이상한지
+             * @example 11월 12일은 안 탔는데 기록에 있어요
+             */
+            message: string;
+        };
+        ApiResponseReceiptInquiryResult: {
+            success: boolean;
+            data?: components["schemas"]["ReceiptInquiryResult"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        ReceiptInquiryResult: {
+            /** Format: int64 */
+            inquiryId: number;
+            /** Format: int64 */
+            receiptId: number;
+            /** Format: int64 */
+            requesterCrewMemberId: number;
+            requesterNickname: string;
+            message: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+        };
         CreateMemberRequest: {
             /**
              * @description 크루 안에서 보이는 이름 (TTS로 읽음)
@@ -1575,6 +1672,11 @@ export interface components {
         ApiResponseReceiptResult: {
             success: boolean;
             data?: components["schemas"]["ReceiptResult"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        ApiResponseListReceiptInquiryResult: {
+            success: boolean;
+            data?: components["schemas"]["ReceiptInquiryResult"][] | null;
             error?: components["schemas"]["ErrorBody"] | null;
         };
         ApiResponsePushConfigResult: {
@@ -2356,6 +2458,77 @@ export interface operations {
             };
         };
     };
+    getInquiries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiptId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListReceiptInquiryResult"];
+                };
+            };
+        };
+    };
+    createInquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiptId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiptInquiryRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseReceiptInquiryResult"];
+                };
+            };
+        };
+    };
+    resolveInquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiptId: number;
+                inquiryId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseReceiptInquiryResult"];
+                };
+            };
+        };
+    };
     createMember: {
         parameters: {
             query?: never;
@@ -2572,6 +2745,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseCrewPlaceResult"];
+                };
+            };
+        };
+    };
+    agreeSettlement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                crewId: number;
+                crewMemberId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseCrewMemberResult"];
                 };
             };
         };

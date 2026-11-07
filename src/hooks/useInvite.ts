@@ -17,8 +17,8 @@ export type JoinForm = {
   alightPlaceId: number | null
 }
 
-// 처음 온 동승자 참여 (참여 3단계의 마지막): 멤버를 만들어 크루에 넣고 → 토큰 저장 → 평소 탈 곳 저장 → 크루 홈
-// 토큰은 이 응답에서만 오므로 바로 저장. 탈 곳 저장이 실패해도 참여는 된 것이라 크루 홈으로 감 (나중에 다시 정함)
+// 처음 온 동승자 참여 (참여 3단계의 마지막): 멤버를 만들어 크루에 넣고 → 토큰 저장 → 평소 탈 곳, 정산 기준 동의 저장 → 크루 홈
+// 토큰은 이 응답에서만 오므로 바로 저장. 탈 곳, 동의 저장이 실패해도 참여는 된 것이라 크루 홈으로 감 (월별 정산에서 다시 동의)
 export function useJoinCrew(code: string) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -36,6 +36,8 @@ export function useJoinCrew(code: string) {
           }),
         ).catch(() => undefined)
       }
+      const path = { crewId: joined.crewId, crewMemberId: joined.crewMemberId }
+      await unwrap(api.POST('/api/crews/{crewId}/members/{crewMemberId}/settlement-agreement', { params: { path } })).catch(() => undefined)
       return joined
     },
     onSuccess: (joined) => {

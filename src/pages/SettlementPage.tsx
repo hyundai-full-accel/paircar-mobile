@@ -6,14 +6,16 @@ import { crewSections } from '../app/sections'
 import { BottomBar } from '../components/BottomBar'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
+import { Modal } from '../components/Modal'
 import { NotificationButton } from '../components/NotificationButton'
 import { Page } from '../components/Page'
 import { EmptyView, ErrorView, LoadingView } from '../components/StatusView'
 import { ChipTabs, MonthTabs } from '../components/Tabs'
-import { useCrewView } from '../hooks/useCrew'
-import { useMyReceipts } from '../hooks/useReceipts'
+import { useAgreeSettlement, useCrewView } from '../hooks/useCrew'
+import { useCreateInquiry, useMyReceipts, useReceiptInquiries } from '../hooks/useReceipts'
 import { cn } from '../lib/cn'
 import { addMonths, crewMonths, currentMonthKst, formatMonth, formatMonthSpan, formatShortDate } from '../lib/dates'
+import { errorMessage } from '../lib/errors'
 import { formatKm, formatWon } from '../lib/format'
 import { NotFoundPage } from './NotFoundPage'
 
@@ -85,8 +87,26 @@ function MonthlySettlement({ crewId, members, me }: { crewId: number; members: C
         value={month}
         onChange={(value) => setSearchParams({ month: value }, { replace: true })}
       />
+      {!me.settlementAgreed && <AgreementCard crewId={crewId} me={me} />}
       {body}
     </>
+  )
+}
+
+// 정산 기준 동의가 없거나, 동의한 뒤 운전자가 정산 방식을 바꿨을 때
+function AgreementCard({ crewId, me }: { crewId: number; me: CrewMember }) {
+  const agree = useAgreeSettlement(crewId, me.crewMemberId)
+  return (
+    <Card className="flex flex-col gap-3 border-brand/30 bg-brand-soft">
+      <h2 className="font-bold">{me.settlementAgreedAt ? '정산 기준이 바뀌었어요' : '정산 기준에 동의해 주세요'}</h2>
+      <p className="text-sm text-sub">
+        함께 탄 구간과 우회 거리, 통행료로 나눠요. 실제 금액은 탑승일, 주행거리, 연비, 통행료에 따라 월말에 산출돼요.
+      </p>
+      {agree.error && <p className="text-sm text-red-600">{errorMessage(agree.error)}</p>}
+      <Button loading={agree.isPending} onClick={() => agree.mutate()}>
+        정산 기준에 동의해요
+      </Button>
+    </Card>
   )
 }
 
@@ -143,7 +163,62 @@ function ReceiptCard({ month, receipt, paying }: { month: string; receipt: Recei
       />
       <div className="h-0.5 bg-ink" />
       {day === 'all' ? <MonthBreakdown receipt={receipt} /> : <DayBreakdown items={dayItems} />}
+      <Inquiries receipt={receipt} paying={paying} />
     </Card>
+  )
+}
+
+// 기록 확인 요청 (시안 "이 기록에 문제가 있나요? 기록 확인 요청"). 내는 사람이 요청하고, 운전자가 보고 처리함
+function Inquiries({ receipt, paying }: { receipt: Receipt; paying: boolean }) {
+  const inquiries = useReceiptInquiries(receipt.receiptId)
+  const create = useCreateInquiry(receipt.receiptId)
+  const [open, setOpen] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const submit = () =>
+    create.mutate(message.trim(), {
+      onSuccess: () => {
+        setOpen(false)
+        setMessage('')
+      },
+    })
+
+  return (
+    <div className="flex flex-col gap-3 pt-2">
+      {inquiries.data?.map((inquiry) => (
+        <div key={inquiry.inquiryId} className="flex flex-col gap-1 rounded-xl bg-white p-4 text-sm">
+          <span className="flex justify-between gap-2">
+            <span className="font-semibold">{paying ? '내가 보낸 확인 요청' : `${inquiry.requesterNickname}님의 확인 요청`}</span>
+            <span className={inquiry.resolvedAt ? 'text-brand' : 'text-muted'}>{inquiry.resolvedAt ? '처리됨' : '확인 중'}</span>
+          </span>
+          <span className="text-sub">{inquiry.message}</span>
+        </div>
+      ))}
+      {paying && (
+        <>
+          <span className="text-sm text-sub">이 기록에 문제가 있나요?</span>
+          <Button block onClick={() => setOpen(true)}>
+            기록 확인 요청
+          </Button>
+          <Modal open={open} onClose={() => setOpen(false)} title="기록 확인 요청">
+            <p className="text-sm text-sub">{receipt.payeeNickname}님에게 보내요. 영수증 금액은 바뀌지 않고, 둘이 확인해서 정리해요.</p>
+            <textarea
+              aria-label="무엇이 이상한지"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              maxLength={500}
+              rows={4}
+              placeholder="예: 11월 12일은 안 탔는데 기록에 있어요"
+              className="rounded-xl bg-surface p-4 text-[15px] outline-none focus:ring-2 focus:ring-ink"
+            />
+            {create.error && <p className="text-sm text-red-600">{errorMessage(create.error)}</p>}
+            <Button block loading={create.isPending} disabled={message.trim().length === 0} onClick={submit}>
+              보내기
+            </Button>
+          </Modal>
+        </>
+      )}
+    </div>
   )
 }
 
