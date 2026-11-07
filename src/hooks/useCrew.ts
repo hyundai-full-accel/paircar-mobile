@@ -42,3 +42,18 @@ export function useCurrentTrip(crewId: number) {
       (await unwrap(api.GET('/api/crews/{crewId}/trips/current', { params: { path: { crewId } } }))) ?? null,
   })
 }
+
+// 크루 화면들이 같이 쓰는 묶음: 크루, 크루원, 이 크루에서의 나
+export function useCrewView(crewId: number) {
+  const crew = useCrew(crewId)
+  const members = useCrewMembers(crewId)
+  const me = useMe()
+  return {
+    crew: crew.data,
+    members: members.data,
+    myMember: me.data && members.data?.find((it) => it.memberId === me.data.memberId),
+    isPending: crew.isPending || members.isPending || me.isPending,
+    error: crew.error ?? members.error ?? me.error,
+    refetch: () => Promise.all([crew.refetch(), members.refetch(), me.refetch()]),
+  }
+}

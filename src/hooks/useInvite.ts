@@ -64,3 +64,10 @@ export function useJoinAsMember(code: string, crewId: number) {
     },
   })
 }
+
+// 크루원 누구나 초대 링크를 만들 수 있음 (7일 동안 유효)
+export function useCreateInvite(crewId: number) {
+  return useMutation({
+    mutationFn: () => unwrap(api.POST('/api/crews/{crewId}/invites', { params: { path: { crewId } } })),
+  })
+}

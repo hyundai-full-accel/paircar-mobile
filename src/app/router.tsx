@@ -1,13 +1,15 @@
 import { createBrowserRouter } from 'react-router'
 import { AttendancePage } from '../pages/AttendancePage'
 import { ComingSoonPage } from '../pages/ComingSoonPage'
-import { CrewHomePage } from '../pages/CrewHomePage'
 import { DetoursPage } from '../pages/DetoursPage'
 import { HomePage } from '../pages/HomePage'
 import { JoinPage } from '../pages/JoinPage'
+import { ManagePage } from '../pages/ManagePage'
 import { MyPlacesPage } from '../pages/MyPlacesPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ReceiptPage } from '../pages/ReceiptPage'
+import { RequestPage } from '../pages/RequestPage'
+import { TodayPage } from '../pages/TodayPage'
 import { TripPage } from '../pages/TripPage'
 import { AppLayout } from './AppLayout'
 import { RequireToken } from './RequireToken'
@@ -24,8 +26,9 @@ export const router = createBrowserRouter([
         element: <RequireToken />,
         children: [
           { path: '/', element: <HomePage /> },
-          { path: '/crews/:crewId', element: <CrewHomePage /> },
-          { path: '/crews/:crewId/manage', element: <ComingSoonPage title="내 크루 관리" /> },
+          { path: '/crews/:crewId', element: <TodayPage /> },
+          { path: '/crews/:crewId/request', element: <RequestPage /> },
+          { path: '/crews/:crewId/manage', element: <ManagePage /> },
           { path: '/crews/:crewId/history', element: <ComingSoonPage title="탑승 기록" /> },
           { path: '/crews/:crewId/settlement', element: <ComingSoonPage title="월별 정산" /> },
           { path: '/crews/:crewId/my-places', element: <MyPlacesPage /> },

@@ -43,3 +43,14 @@ export function formatDotDate(iso: string | Date): string {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(new Date(iso))
   return parts.replaceAll('-', '.')
 }
+
+// 남은 거리: 403m, 1.5km
+export function formatDistance(meters: number): string {
+  return meters < 1000 ? `${Math.round(meters)}m` : `${(meters / 1000).toFixed(1)}km`
+}
+
+// 남은 시간: "약 2분 후 도착", 1분 안이면 "곧 도착"
+export function formatEta(seconds: number): string {
+  const minutes = Math.ceil(seconds / 60)
+  return minutes <= 1 ? '곧 도착' : `약 ${minutes}분 후 도착`
+}
