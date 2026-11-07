@@ -102,8 +102,8 @@ export interface paths {
         };
         get?: never;
         /**
-         * 평소 탈 곳, 내릴 곳
-         * @description null은 지웁니다. 장소는 이 크루 것이어야 합니다.
+         * 평소 탈 곳, 내릴 곳, 픽업 시각
+         * @description 바꿀 수 있는 값 전체를 보내고 null은 지웁니다. 장소는 이 크루 것이어야 합니다.
          */
         put: operations["changeMemberPlaces"];
         post?: never;
@@ -209,6 +209,26 @@ export interface paths {
          * @description 탑승 인원이 바뀌는 지점마다 나눈 구간입니다. 이미 저장된 seq는 건너뜁니다. 이어지는 seq끼리는 앞 구간 끝과 다음 구간 시작이 같아야 하고, 동승자는 이 운행에 탑승한 사람이어야 합니다.
          */
         post: operations["uploadSegments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trips/{tripId}/me/boarded": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 탔어요 (동승자)
+         * @description 동승자 웹에서 동승자 본인이 탔다고 알립니다. 아직 탑승 기록이 없으면 지금 시각으로 탑승 처리하고 운전자에게 rider.boarded를 보냅니다(주행거리는 비워 둠). 차량 앱이 나중에 탑승을 기록하면 주행거리만 채웁니다.
+         */
+        post: operations["reportBoardedByRider"];
         delete?: never;
         options?: never;
         head?: never;
@@ -366,7 +386,7 @@ export interface paths {
         put?: never;
         /**
          * 탑승 기록
-         * @description 탑승 감지(도어 → 벨트) 시 호출합니다. 이미 기록됐으면 처음 값을 유지합니다.
+         * @description 탑승 감지(도어 → 벨트) 시 호출합니다. 이미 기록됐으면 처음 값을 유지합니다. 동승자가 "탔어요"로 먼저 알린 탑승이면 주행거리만 채웁니다.
          */
         post: operations["recordBoarding"];
         delete?: never;
@@ -987,6 +1007,11 @@ export interface components {
              */
             departureTime?: string | null;
             /**
+             * @description 평소 도착 시각 (KST, HH:mm)
+             * @example 08:32
+             */
+            arrivalTime?: string | null;
+            /**
              * @description 카풀하는 요일
              * @example [
              *       "MONDAY",
@@ -1049,6 +1074,11 @@ export interface components {
              * @example 08:00
              */
             departureTime?: string | null;
+            /**
+             * @description 평소 도착 시각 (KST, HH:mm)
+             * @example 08:32
+             */
+            arrivalTime?: string | null;
             /** @description 카풀하는 요일 */
             departureDays: ("MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY")[];
             originPlace?: components["schemas"]["CrewPlaceResult"] | null;
@@ -1067,6 +1097,11 @@ export interface components {
              * @example 4
              */
             alightPlaceId?: number | null;
+            /**
+             * @description 평소 픽업 시각 (KST, HH:mm). null이면 지움
+             * @example 07:32
+             */
+            pickupTime?: string | null;
         };
         ApiResponseCrewMemberResult: {
             success: boolean;
@@ -1087,6 +1122,11 @@ export interface components {
             driver: boolean;
             boardPlace?: components["schemas"]["CrewPlaceResult"] | null;
             alightPlace?: components["schemas"]["CrewPlaceResult"] | null;
+            /**
+             * @description 평소 픽업 시각 (KST, HH:mm)
+             * @example 07:32
+             */
+            pickupTime?: string | null;
         };
         AttendanceRequest: {
             /**
@@ -1100,6 +1140,12 @@ export interface components {
              * @example 3
              */
             boardPlaceId?: number | null;
+            /**
+             * Format: int32
+             * @description 출발 전에 알리는 그날 지각 (분, 1~120). 안 타는 날이면 무시
+             * @example 10
+             */
+            delayMinutes?: number | null;
         };
         ApiResponseAttendanceResult: {
             success: boolean;
@@ -1117,6 +1163,12 @@ export interface components {
             attending: boolean;
             boardPlace?: components["schemas"]["CrewPlaceResult"] | null;
             alightPlace?: components["schemas"]["CrewPlaceResult"] | null;
+            /**
+             * Format: int32
+             * @description 출발 전에 알린 그날 지각 (분)
+             * @example 10
+             */
+            delayMinutes?: number | null;
             /** @description 그날 출석을 따로 정했는지. false면 기본값 */
             changed: boolean;
         };
@@ -1570,6 +1622,11 @@ export interface components {
              * @example 07:10
              */
             departureTime?: string | null;
+            /**
+             * @description 평소 도착 시각 (KST, HH:mm)
+             * @example 08:32
+             */
+            arrivalTime?: string | null;
             departureDays: ("MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY")[];
             originPlace?: components["schemas"]["CrewPlaceResult"] | null;
             destinationPlace?: components["schemas"]["CrewPlaceResult"] | null;
@@ -2039,6 +2096,28 @@ export interface operations {
                 "application/json": components["schemas"]["UploadSegmentsRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseTripResult"];
+                };
+            };
+        };
+    };
+    reportBoardedByRider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tripId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {

@@ -20,7 +20,8 @@ export function useRegisterPlace(crewId: number) {
   })
 }
 
-export type MemberPlaces = { boardPlaceId: number | null; alightPlaceId: number | null }
+// 평소 탈 곳, 내릴 곳, 픽업 시각(HH:mm) 전체 값. 안 보낸 값은 지워짐
+export type MemberPlaces = { boardPlaceId: number | null; alightPlaceId: number | null; pickupTime: string | null }
 
 // 크루 멤버의 평소 탈 곳, 내릴 곳. 크루원 목록, 출석에 바로 반영되도록 다시 불러옴
 export function useChangeMemberPlaces(crewId: number, crewMemberId: number) {

@@ -1,4 +1,4 @@
-import { CalendarX, Clock, MapPin } from 'lucide-react'
+import { CalendarX, Check, Clock, MapPin } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import type { Crew, CrewMember, Trip } from '../api/types'
@@ -12,9 +12,10 @@ import { Page } from '../components/Page'
 import { EmptyView, ErrorView, LoadingView } from '../components/StatusView'
 import { useAttendances } from '../hooks/useAttendance'
 import { useCrewView, useCurrentTrip } from '../hooks/useCrew'
-import { useTripNotice, useVehicle } from '../hooks/useTrip'
+import { useTripNotice, useTripRequest, useVehicle } from '../hooks/useTrip'
 import { cn } from '../lib/cn'
 import { formatServiceDate, todayKst, upcomingCarpoolDays } from '../lib/dates'
+import { errorMessage } from '../lib/errors'
 import { formatDistance, formatDotDate, formatEta } from '../lib/format'
 import { NotFoundPage } from './NotFoundPage'
 
@@ -113,7 +114,7 @@ function NextCarpoolHero({ crew, me }: { crew: Crew; me: CrewMember }) {
         <p className="text-[22px] leading-none font-bold">{date === todayKst() ? '오늘' : formatServiceDate(date)}</p>
       </div>
       <HeroDivider />
-      <p className="text-[15px] text-sub">[출발 전]</p>
+      <p className="text-[15px] text-sub">[출발 전]{mine?.attending && mine.delayMinutes ? ` ${mine.delayMinutes}분 늦게 나간다고 알렸어요` : ''}</p>
       <p className={cn('mt-2 text-[28px] font-bold', mine?.attending === false && 'text-sub')}>
         {!mine ? ' ' : mine.attending ? (mine.boardPlace ? `${mine.boardPlace.name}에서 타요` : '타요') : '이날은 안 타요'}
       </p>
@@ -121,10 +122,12 @@ function NextCarpoolHero({ crew, me }: { crew: Crew; me: CrewMember }) {
   )
 }
 
-// 내 탑승 (시안 "내 탑승 · 차가 도착하면 탑승 여부를 기록해요")
+// 내 탑승 (시안 "내 탑승 · 차가 도착하면 탑승 여부를 기록해요"). 아직 안 탔으면 "탔어요"로 직접 알릴 수 있음
 function MyBoardingCard({ trip, me }: { trip: Trip; me: CrewMember }) {
   const mine = trip.boardings.find((it) => it.crewMemberId === me.crewMemberId)
   const place = trip.waypoints.find((it) => it.placeId === mine?.boardPlaceId)
+  const { boarded } = useTripRequest(trip.tripId, me.crewMemberId)
+  const canReport = mine !== undefined && !mine.boardedAt
 
   let status = '픽업 예정'
   if (!mine) status = '불참'
@@ -132,18 +135,32 @@ function MyBoardingCard({ trip, me }: { trip: Trip; me: CrewMember }) {
   else if (mine.boardedAt) status = '탑승 완료'
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-surface-soft p-5">
-      <span
-        aria-hidden
-        className={cn('size-6 shrink-0 rounded-md border-2', mine?.boardedAt ? 'border-sub bg-sub' : 'border-[#C4C9D4] bg-white')}
-      />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <span className="text-[17px] font-bold">내 탑승</span>
-        <span className="truncate text-sm text-sub">
-          {place ? `${place.name} · ` : ''}차가 도착하면 탑승 여부를 기록해요.
-        </span>
+    <div className="flex flex-col gap-3 rounded-2xl bg-surface-soft p-5">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={Boolean(mine?.boardedAt)}
+          aria-label="탔어요"
+          disabled={!canReport || boarded.isPending}
+          onClick={() => boarded.mutate()}
+          className={cn(
+            'flex size-6 shrink-0 items-center justify-center rounded-md border-2',
+            mine?.boardedAt ? 'border-sub bg-sub text-white' : 'border-[#C4C9D4] bg-white',
+          )}
+        >
+          {mine?.boardedAt && <Check className="size-4" strokeWidth={3} />}
+        </button>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="text-[17px] font-bold">내 탑승</span>
+          <span className="truncate text-sm text-sub">
+            {place ? `${place.name} · ` : ''}
+            {canReport ? '탔으면 눌러서 운전자에게 알려요.' : '차가 도착하면 탑승 여부를 기록해요.'}
+          </span>
+        </div>
+        <Chip className="shrink-0 bg-white">{status}</Chip>
       </div>
-      <Chip className="shrink-0 bg-white">{status}</Chip>
+      {boarded.error && <p className="text-sm text-red-600">{errorMessage(boarded.error)}</p>}
     </div>
   )
 }

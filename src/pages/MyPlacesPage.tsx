@@ -59,7 +59,7 @@ function MyPlacesForm({ crewId, member, places }: { crewId: number; member: Crew
   const samePlace = boardPlaceId !== null && boardPlaceId === alightPlaceId
 
   const onSave = () =>
-    save.mutate({ boardPlaceId, alightPlaceId }, { onSuccess: () => navigate(`/crews/${crewId}`, { replace: true }) })
+    save.mutate({ boardPlaceId, alightPlaceId, pickupTime: member.pickupTime ?? null }, { onSuccess: () => navigate(`/crews/${crewId}`, { replace: true }) })
 
   return (
     <>

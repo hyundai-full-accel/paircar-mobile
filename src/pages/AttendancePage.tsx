@@ -71,7 +71,9 @@ function DayCard({ crewId, date, member, places, query }: DayCardProps) {
   // 그날만 바꾼 탈 곳. 평소 탈 곳과 같으면 바꾸지 않은 것
   const overridePlaceId = mine?.boardPlace && mine.boardPlace.placeId !== defaultPlaceId ? mine.boardPlace.placeId : null
 
-  const set = (attending: boolean, boardPlaceId: number | null) => change.mutate({ date, attending, boardPlaceId })
+  // 지각(출발 전에 알린 것)은 타는 날로 남아 있는 동안 유지
+  const set = (attending: boolean, boardPlaceId: number | null) =>
+    change.mutate({ date, attending, boardPlaceId, delayMinutes: attending ? (mine?.delayMinutes ?? null) : null })
 
   return (
     <Card className="flex flex-col gap-3">

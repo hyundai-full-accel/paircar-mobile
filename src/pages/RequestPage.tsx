@@ -9,7 +9,7 @@ import { Modal } from '../components/Modal'
 import { NotificationButton } from '../components/NotificationButton'
 import { Page } from '../components/Page'
 import { EmptyView, ErrorView, LoadingView } from '../components/StatusView'
-import { useChangeAttendance } from '../hooks/useAttendance'
+import { useAttendances, useChangeAttendance } from '../hooks/useAttendance'
 import { useCrewView, useCurrentTrip } from '../hooks/useCrew'
 import { useCrewPlaces } from '../hooks/usePlaces'
 import { useTripRequest } from '../hooks/useTrip'
@@ -76,6 +76,11 @@ function RequestForm({ crew, me, trip, places }: RequestFormProps) {
   const currentPlaceId = myBoarding?.boardPlaceId ?? me.boardPlace?.placeId ?? null
   const [placeId, setPlaceId] = useState<number | null>(places.find((it) => it.placeId !== currentPlaceId)?.placeId ?? null)
 
+  // 출발 전: 그날 이미 정한 탈 곳, 지각은 바꾸지 않는 값으로 같이 보냄 (안 보내면 지워짐)
+  const [dayAttendance] = useAttendances(crew.crewId, [date])
+  const mine = dayAttendance.data?.find((it) => it.crewMemberId === me.crewMemberId)
+  const dayPlaceId = mine?.boardPlace && mine.boardPlace.placeId !== me.boardPlace?.placeId ? mine.boardPlace.placeId : null
+
   const tripRequest = useTripRequest(trip?.tripId ?? 0, me.crewMemberId)
   const attendance = useChangeAttendance(crew.crewId, me.crewMemberId)
   const pending = tripRequest.delay.isPending || tripRequest.cancel.isPending || tripRequest.changePlace.isPending || attendance.isPending
@@ -89,8 +94,11 @@ function RequestForm({ crew, me, trip, places }: RequestFormProps) {
       if (type === 'absent') tripRequest.cancel.mutate(undefined, onDone)
       if (type === 'place' && placeId) tripRequest.changePlace.mutate(placeId, onDone)
     } else if (mode === 'before') {
+      if (type === 'late') attendance.mutate({ date, attending: true, boardPlaceId: dayPlaceId, delayMinutes: minutes }, onDone)
       if (type === 'absent') attendance.mutate({ date, attending: false, boardPlaceId: null }, onDone)
-      if (type === 'place' && placeId) attendance.mutate({ date, attending: true, boardPlaceId: placeId }, onDone)
+      if (type === 'place' && placeId) {
+        attendance.mutate({ date, attending: true, boardPlaceId: placeId, delayMinutes: mine?.delayMinutes ?? null }, onDone)
+      }
     }
   }
 
@@ -179,7 +187,6 @@ function RequestForm({ crew, me, trip, places }: RequestFormProps) {
 function blockedReason(type: RequestType, mode: string, placeId: number | null): string | null {
   if (mode === 'boarded') return '이미 탔어요. 내린 뒤에 바꿀 수 있어요.'
   if (mode === 'excluded') return '오늘 운행에서 이미 빠졌어요.'
-  if (type === 'late' && mode === 'before') return '지각 알림은 운전자가 출발한 뒤에 보낼 수 있어요.'
   if (type === 'place' && placeId === null) return '바꿀 수 있는 다른 장소가 없어요. 내 크루 관리에서 장소를 추가해 주세요.'
   return null
 }

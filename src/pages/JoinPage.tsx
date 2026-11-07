@@ -129,6 +129,7 @@ function CrewInfoCard({ invite }: { invite: InvitePreview }) {
         <InfoRow label="운전자">{invite.driverNicknames.length > 0 ? invite.driverNicknames.join(', ') : unset}</InfoRow>
         <InfoRow label="운행 요일">{invite.departureDays.length > 0 ? `${formatDays(invite.departureDays)} (기본)` : unset}</InfoRow>
         <InfoRow label="출발 예정">{invite.departureTime ? formatClock(invite.departureTime) : unset}</InfoRow>
+        {invite.arrivalTime && <InfoRow label="도착 예정">{formatClock(invite.arrivalTime)}</InfoRow>}
         <InfoRow label="함께하는 인원">{invite.memberCount}명</InfoRow>
         <InfoRow label="출발지">{invite.originPlace?.name ?? unset}</InfoRow>
         <InfoRow label="도착지">{invite.destinationPlace?.name ?? unset}</InfoRow>

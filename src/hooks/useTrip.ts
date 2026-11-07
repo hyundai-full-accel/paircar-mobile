@@ -26,7 +26,7 @@ export function useTripNotice(tripId: number | undefined) {
   return useLiveValue<LiveEvent>(['trips', tripId, 'notice'])
 }
 
-// 운행 중 동승자가 보내는 변경: 지각, 오늘 불참, 이번 운행만 탈 곳 변경
+// 운행 중 동승자가 보내는 것: 지각, 오늘 불참, 이번 운행만 탈 곳 변경, 탔어요
 // 보내면 운전자 차량 앱에 바로 알림이 가고 음성으로 읽어 줌
 export function useTripRequest(tripId: number, crewMemberId: number) {
   const queryClient = useQueryClient()
@@ -42,6 +42,10 @@ export function useTripRequest(tripId: number, crewMemberId: number) {
     }),
     cancel: useMutation({
       mutationFn: () => unwrap(api.DELETE('/api/trips/{tripId}/boardings/{crewMemberId}', { params: { path } })),
+      onSuccess: refresh,
+    }),
+    boarded: useMutation({
+      mutationFn: () => unwrap(api.POST('/api/trips/{tripId}/me/boarded', { params: { path: { tripId } } })),
       onSuccess: refresh,
     }),
     changePlace: useMutation({
@@ -65,5 +69,15 @@ export function useCrewDetours(crewId: number) {
   return useQuery({
     queryKey: ['crews', crewId, 'detours'],
     queryFn: () => unwrap(api.GET('/api/crews/{crewId}/detours', { params: { path: { crewId } } })),
+  })
+}
+
+// 우회 거리 확인 (운전자, 동승자 둘 다 확인해야 정산에 들어감)
+export function useConfirmDetour(crewId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (detourId: number) =>
+      unwrap(api.POST('/api/crews/{crewId}/detours/{detourId}/confirm', { params: { path: { crewId, detourId } } })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['crews', crewId, 'detours'] }),
   })
 }

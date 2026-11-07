@@ -32,7 +32,7 @@ export function useJoinCrew(code: string) {
         await unwrap(
           api.PUT('/api/crews/{crewId}/members/{crewMemberId}/places', {
             params: { path: { crewId: joined.crewId, crewMemberId: joined.crewMemberId } },
-            body: { boardPlaceId, alightPlaceId },
+            body: { boardPlaceId, alightPlaceId, pickupTime: null },
           }),
         ).catch(() => undefined)
       }

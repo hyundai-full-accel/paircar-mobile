@@ -19,6 +19,7 @@ export type LiveEventMap = {
     serviceDate: string
     attending: boolean
     boardPlace: Place | null
+    delayMinutes: number | null
   }
   'detour.confirm-requested': {
     detourId: number

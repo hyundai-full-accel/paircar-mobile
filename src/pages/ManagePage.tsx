@@ -72,7 +72,7 @@ function Manage({ crewId }: { crewId: number }) {
   )
 }
 
-// 크루 이름, 시작일, 출발 시각, 요일 (도착 예정 시각은 서버에 아직 없음)
+// 크루 이름, 시작일, 출발 ~ 도착 시각, 요일
 function CrewHero({ crew, members }: { crew: Crew; members: CrewMember[] }) {
   const startedAt = members.map((it) => it.joinedAt).sort()[0]
   return (
@@ -80,7 +80,10 @@ function CrewHero({ crew, members }: { crew: Crew; members: CrewMember[] }) {
       {startedAt && <p className="text-sm text-sub">{formatDotDate(startedAt)} ~</p>}
       <p className="mt-3 text-[17px] font-bold">{crew.name}</p>
       <HeroDivider />
-      <p className="text-[34px] leading-none font-bold tabular-nums">{crew.departureTime ?? '—:—'}</p>
+      <p className="text-[34px] leading-none font-bold tabular-nums">
+        {crew.departureTime ?? '—:—'}
+        {crew.arrivalTime && ` ~ ${crew.arrivalTime}`}
+      </p>
       <div className="mt-4 flex flex-wrap gap-2">
         {crew.departureDays.length > 0 && <Chip>{formatDays(crew.departureDays)}</Chip>}
         {crew.departureTime && <Chip>{formatClock(crew.departureTime)} 출발</Chip>}
@@ -90,13 +93,13 @@ function CrewHero({ crew, members }: { crew: Crew; members: CrewMember[] }) {
   )
 }
 
-// 경로 상세: 출발 → 내가 타는 곳 → 내리는 곳 (각 지점 예상 시각은 서버에 아직 없어 출발 시각만)
+// 경로 상세: 출발 → 내가 타는 곳(평소 픽업 시각) → 내리는 곳(평소 도착 시각)
 function RouteCard({ crew, me }: { crew: Crew; me: CrewMember }) {
   const items: TimelineItem[] = []
   if (crew.originPlace) items.push({ time: crew.departureTime ?? undefined, text: crew.originPlace.name })
-  items.push({ text: me.boardPlace ? `${me.boardPlace.name}에서 탑승` : '탈 곳을 정해 주세요' })
+  items.push({ time: me.pickupTime ?? undefined, text: me.boardPlace ? `${me.boardPlace.name}에서 탑승` : '탈 곳을 정해 주세요' })
   const alight = me.alightPlace ?? crew.destinationPlace
-  if (alight) items.push({ text: `${alight.name}에서 하차` })
+  if (alight) items.push({ time: crew.arrivalTime ?? undefined, text: `${alight.name}에서 하차` })
 
   return (
     <SectionCard title="경로 상세" to={`/crews/${crew.crewId}/my-places`}>
