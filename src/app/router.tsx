@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router'
+import { AttendancePage } from '../pages/AttendancePage'
 import { CrewHomePage } from '../pages/CrewHomePage'
 import { DetoursPage } from '../pages/DetoursPage'
 import { HomePage } from '../pages/HomePage'
@@ -24,6 +25,7 @@ export const router = createBrowserRouter([
           { path: '/', element: <HomePage /> },
           { path: '/crews/:crewId', element: <CrewHomePage /> },
           { path: '/crews/:crewId/my-places', element: <MyPlacesPage /> },
+          { path: '/crews/:crewId/attendance', element: <AttendancePage /> },
           { path: '/trips/:tripId', element: <TripPage /> },
           { path: '/crews/:crewId/detours', element: <DetoursPage /> },
           { path: '/receipts/:receiptId', element: <ReceiptPage /> },

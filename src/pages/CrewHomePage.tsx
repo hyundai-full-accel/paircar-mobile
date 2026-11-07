@@ -1,17 +1,19 @@
-import { CarFront, ChevronRight, Clock, MapPin } from 'lucide-react'
+import { CalendarCheck, CarFront, ChevronRight, Clock, MapPin } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import type { Crew, CrewMember, Trip } from '../api/types'
 import { Card } from '../components/Card'
 import { Page } from '../components/Page'
 import { ErrorView, LoadingView } from '../components/StatusView'
+import { useAttendances } from '../hooks/useAttendance'
 import { useCrew, useCrewMembers, useCurrentTrip } from '../hooks/useCrew'
 import { useMe } from '../hooks/useMe'
 import { cn } from '../lib/cn'
+import { formatServiceDate, upcomingCarpoolDays } from '../lib/dates'
 import { formatClock, formatDays } from '../lib/format'
 import { NotFoundPage } from './NotFoundPage'
 
-// 크루 홈: 진행 중인 운행, 크루 기본 일정, 크루원
+// 크루 홈: 진행 중인 운행, 다음 카풀 날 내 출석, 크루 기본 일정, 크루원
 export function CrewHomePage() {
   const crewId = Number(useParams().crewId)
   if (!Number.isInteger(crewId)) return <NotFoundPage />
@@ -32,9 +34,11 @@ function CrewHome({ crewId }: { crewId: number }) {
   } else if (crew.isPending || members.isPending) {
     content = <LoadingView />
   } else {
+    const myMember = members.data.find((it) => it.memberId === me.data?.memberId)
     content = (
       <>
         {currentTrip.data && <CurrentTripBanner trip={currentTrip.data} />}
+        {myMember && <NextCarpoolCard crew={crew.data} myMember={myMember} />}
         <ScheduleCard crew={crew.data} />
         <MemberList crewId={crewId} members={members.data} myMemberId={me.data?.memberId} drivingMemberId={currentTrip.data?.driverMemberId} />
       </>
@@ -54,6 +58,29 @@ function CurrentTripBanner({ trip }: { trip: Trip }) {
           <span className="text-sm text-white/80">눌러서 차 위치와 도착 시간을 보세요</span>
         </div>
         <ChevronRight className="size-5 shrink-0" />
+      </Card>
+    </Link>
+  )
+}
+
+// 다음 카풀 날 내가 타는지. 눌러서 출석을 바꿈
+function NextCarpoolCard({ crew, myMember }: { crew: Crew; myMember: CrewMember }) {
+  const [date] = upcomingCarpoolDays(crew.departureDays, 1)
+  const [attendance] = useAttendances(crew.crewId, [date])
+  const mine = attendance.data?.find((it) => it.crewMemberId === myMember.crewMemberId)
+
+  let status = '\u00a0'
+  if (mine) status = mine.attending ? (mine.boardPlace ? `${mine.boardPlace.name}에서 타요` : '타요') : '안 타요'
+
+  return (
+    <Link to={`/crews/${crew.crewId}/attendance`}>
+      <Card className="flex items-center gap-3 active:bg-gray-50">
+        <CalendarCheck className={cn('size-6 shrink-0', mine?.attending === false ? 'text-gray-400' : 'text-brand')} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="text-sm text-gray-500">{formatServiceDate(date)} 카풀</span>
+          <span className={cn('truncate font-semibold', mine?.attending === false && 'text-gray-500')}>{status}</span>
+        </div>
+        <span className="shrink-0 text-sm text-brand">출석 바꾸기</span>
       </Card>
     </Link>
   )
