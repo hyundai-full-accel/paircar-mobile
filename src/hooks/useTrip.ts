@@ -51,3 +51,19 @@ export function useTripRequest(tripId: number, crewMemberId: number) {
     }),
   }
 }
+
+// 크루의 그 달 운행 목록 (탑승 기록). 누가 어디서 언제 탔는지, 탄 거리
+export function useTripsOfMonth(crewId: number, month: string) {
+  return useQuery({
+    queryKey: ['crews', crewId, 'trips', 'month', month],
+    queryFn: () => unwrap(api.GET('/api/crews/{crewId}/trips', { params: { path: { crewId }, query: { month } } })),
+  })
+}
+
+// 크루의 우회 거리 (운전자가 동승자를 태우러 더 달리는 거리). 둘 다 확인한 것만 정산에 들어감
+export function useCrewDetours(crewId: number) {
+  return useQuery({
+    queryKey: ['crews', crewId, 'detours'],
+    queryFn: () => unwrap(api.GET('/api/crews/{crewId}/detours', { params: { path: { crewId } } })),
+  })
+}

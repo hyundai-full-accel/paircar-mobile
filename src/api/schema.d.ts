@@ -717,6 +717,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/crews/{crewId}/trips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 운행 목록
+         * @description 크루의 그 달(운행일, KST) 운행을 시작 순으로 돌려줍니다. 동승자마다 탄 곳, 내린 곳, 탄 시각, 탄 거리가 들어 있습니다. 동승자 웹 탑승 기록, 차량 앱 운행 기록에 씁니다. 금액은 영수증(boardingId로 맞춤)에 있습니다.
+         */
+        get: operations["getTripsOfMonth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/crews/{crewId}/trips/current": {
         parameters: {
             query?: never;
@@ -1405,6 +1425,8 @@ export interface components {
             /** Format: int64 */
             receiptId: number;
             /** Format: int64 */
+            crewId: number;
+            /** Format: int64 */
             payerCrewMemberId: number;
             /** Format: int64 */
             payerMemberId: number;
@@ -1566,6 +1588,54 @@ export interface components {
             driverNicknames: string[];
             /** @description 크루 장소 (평소 탈 곳, 내릴 곳 고르기) */
             places: components["schemas"]["CrewPlaceResult"][];
+        };
+        ApiResponseListTripSummaryResult: {
+            success: boolean;
+            data?: components["schemas"]["TripSummaryResult"][] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        RiderSummary: {
+            /**
+             * Format: int64
+             * @description 영수증 하루치 줄(ReceiptItemResult.boardingId)과 맞출 때 씀
+             */
+            boardingId: number;
+            /** Format: int64 */
+            crewMemberId: number;
+            nickname: string;
+            boardPlaceName: string;
+            alightPlaceName: string;
+            /** Format: date-time */
+            boardedAt?: string | null;
+            /** Format: date-time */
+            alightedAt?: string | null;
+            /**
+             * @description 탄 거리 (km) = 하차 주행거리 - 탑승 주행거리. 내린 뒤에만
+             * @example 12
+             */
+            rideDistanceKm?: number | null;
+        };
+        TripSummaryResult: {
+            /** Format: int64 */
+            tripId: number;
+            /** Format: date */
+            serviceDate: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            endedAt?: string | null;
+            /** Format: int64 */
+            driverCrewMemberId: number;
+            driverNickname: string;
+            originName: string;
+            destinationName: string;
+            /**
+             * @description 운행 거리 (km). 끝난 운행만
+             * @example 21.4
+             */
+            distanceKm?: number | null;
+            /** @description 동승자 (불참 처리된 사람은 빠짐) */
+            riders: components["schemas"]["RiderSummary"][];
         };
         ApiResponseListCrewPlaceResult: {
             success: boolean;
@@ -2620,6 +2690,34 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseInvitePreviewResult"];
+                };
+            };
+        };
+    };
+    getTripsOfMonth: {
+        parameters: {
+            query: {
+                /**
+                 * @description 운행 월
+                 * @example 2026-11
+                 */
+                month: string;
+            };
+            header?: never;
+            path: {
+                crewId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListTripSummaryResult"];
                 };
             };
         };

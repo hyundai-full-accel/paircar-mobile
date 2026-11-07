@@ -54,3 +54,13 @@ export function formatEta(seconds: number): string {
   const minutes = Math.ceil(seconds / 60)
   return minutes <= 1 ? '곧 도착' : `약 ${minutes}분 후 도착`
 }
+
+// 20700 → "20,700"
+export function formatWon(won: number): string {
+  return Math.round(won).toLocaleString('ko-KR')
+}
+
+// 216 → "216.0km"
+export function formatKm(km: number): string {
+  return `${km.toFixed(1)}km`
+}
