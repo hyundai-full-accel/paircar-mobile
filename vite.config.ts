@@ -43,6 +43,8 @@ export default defineConfig({
   server: {
     // 서버 초대 링크 기본값(PAIRCAR_INVITE_BASE_URL=http://localhost:3000/join)과 맞춤
     port: 3000,
+    // 같은 Wi-Fi의 폰에서 차량 앱 QR(PAIRCAR_INVITE_BASE_URL=http://<PC IP>:3000/join)로 열 수 있게 LAN에도 엶
+    host: true,
     // 로컬 서버(nginx, infra/compose.yaml)로 넘겨서 CORS 없이 호출
     proxy: {
       '/api': {

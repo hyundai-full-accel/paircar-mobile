@@ -11,6 +11,7 @@ import { Hero, HeroDivider } from '../components/Hero'
 import { InfoList, InfoRow } from '../components/InfoRow'
 import { Modal } from '../components/Modal'
 import { HeaderButton, Page } from '../components/Page'
+import { QrCode } from '../components/QrCode'
 import { EmptyView, ErrorView, LoadingView } from '../components/StatusView'
 import { Timeline, type TimelineItem } from '../components/Timeline'
 import { useCrewView } from '../hooks/useCrew'
@@ -176,6 +177,7 @@ function SettingLink({ to, icon, children }: { to: string; icon: ReactNode; chil
 }
 
 // 크루 초대하기 (시안 "https://crew.car/... 복사")
+// 차량 앱과 같은 QR(서버가 준 inviteUrl)을 함께 보여 줘서, 옆 사람은 폰 카메라로 바로 찍어 참여할 수 있음
 function InviteModal({ invite: create, open, onClose }: { invite: ReturnType<typeof useCreateInvite>; open: boolean; onClose: () => void }) {
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
   const invite = create.data
@@ -193,6 +195,16 @@ function InviteModal({ invite: create, open, onClose }: { invite: ReturnType<typ
 
   return (
     <Modal open={open} onClose={onClose} title="크루 초대하기">
+      <div className="flex flex-col items-center gap-3 rounded-2xl bg-surface p-4">
+        {invite ? (
+          <QrCode value={invite.inviteUrl} className="w-full max-w-60" />
+        ) : (
+          <div className="flex aspect-square w-full max-w-60 items-center justify-center rounded-2xl bg-white text-sm text-muted">
+            {create.isError ? 'QR을 만들지 못했어요' : 'QR을 만드는 중…'}
+          </div>
+        )}
+        <p className="text-center text-sm text-sub">카메라로 QR을 찍으면 크루 참여 화면이 열려요.</p>
+      </div>
       <div className="flex h-13 items-center gap-2 rounded-xl bg-surface px-4">
         <span className={cn('flex-1 truncate text-[15px]', !invite && 'text-muted')}>
           {invite?.inviteUrl ?? (create.isError ? '링크를 만들지 못했어요' : '링크를 만드는 중…')}
