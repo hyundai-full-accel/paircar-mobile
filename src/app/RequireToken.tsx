@@ -3,12 +3,20 @@ import { Outlet } from 'react-router'
 import { Card } from '../components/Card'
 import { Page } from '../components/Page'
 import { useToken } from '../hooks/useToken'
+import { LiveProvider } from './LiveProvider'
 
 // 토큰이 있어야 하는 화면. 없으면(처음 왔거나 만료됨) 초대 링크로 들어오라고 안내
 // 페어카는 로그인이 없고, 초대 링크로 참여할 때 받은 토큰으로만 나를 구분함
+// 토큰이 있는 동안에만 실시간 연결(LiveProvider)을 유지함
 export function RequireToken() {
   const token = useToken()
-  if (token) return <Outlet />
+  if (token) {
+    return (
+      <LiveProvider>
+        <Outlet />
+      </LiveProvider>
+    )
+  }
 
   return (
     <Page>

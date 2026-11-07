@@ -45,7 +45,18 @@ export default defineConfig({
     port: 3000,
     // 로컬 서버(nginx, infra/compose.yaml)로 넘겨서 CORS 없이 호출
     proxy: {
-      '/api': 'http://localhost',
+      '/api': {
+        target: 'http://localhost',
+        // 서버가 SSE 연결을 끊어도(재시작 등) 프록시가 브라우저 쪽 연결을 열어 둬서
+        // 앱이 끊긴 줄 모르고 다시 붙지 않음. 서버 쪽이 닫히면 브라우저 쪽도 닫음 (배포 nginx는 원래 이렇게 동작)
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes, _req, res) => {
+            proxyRes.on('close', () => {
+              if (!res.writableEnded) res.destroy()
+            })
+          })
+        },
+      },
     },
   },
 })
