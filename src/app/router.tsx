@@ -6,6 +6,7 @@ import { NotFoundPage } from '../pages/NotFoundPage'
 import { ReceiptPage } from '../pages/ReceiptPage'
 import { TripPage } from '../pages/TripPage'
 import { AppLayout } from './AppLayout'
+import { RequireToken } from './RequireToken'
 
 // 서버가 만드는 주소와 맞춰야 함
 // - /join/:code: 초대 링크, QR (PAIRCAR_INVITE_BASE_URL)
@@ -14,11 +15,16 @@ export const router = createBrowserRouter([
   {
     element: <AppLayout />,
     children: [
-      { path: '/', element: <HomePage /> },
       { path: '/join/:code', element: <JoinPage /> },
-      { path: '/trips/:tripId', element: <TripPage /> },
-      { path: '/crews/:crewId/detours', element: <DetoursPage /> },
-      { path: '/receipts/:receiptId', element: <ReceiptPage /> },
+      {
+        element: <RequireToken />,
+        children: [
+          { path: '/', element: <HomePage /> },
+          { path: '/trips/:tripId', element: <TripPage /> },
+          { path: '/crews/:crewId/detours', element: <DetoursPage /> },
+          { path: '/receipts/:receiptId', element: <ReceiptPage /> },
+        ],
+      },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

@@ -72,7 +72,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/crews/{crewId}/fuel-price": {
+    "/api/crews/{crewId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 크루 조회 */
+        get: operations["getCrew"];
+        /**
+         * 크루 설정 수정
+         * @description 이름, 기본 일정(출발 시각, 요일, 출발지, 목적지), 정산 방식을 바꿉니다. 바꿀 수 있는 값 전체를 보내고, null은 그 값을 지웁니다. 차를 등록한 크루 멤버만 바꿀 수 있습니다(CREW_DRIVER_ONLY). 정산 방식은 내는 사람이 정하지 않게 하려는 것입니다. 일정은 기본값이라 운행은 여전히 그날 정한 출발지, 목적지로 시작합니다.
+         */
+        put: operations["updateCrew"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/crews/{crewId}/members/{crewMemberId}/places": {
         parameters: {
             query?: never;
             header?: never;
@@ -81,10 +102,30 @@ export interface paths {
         };
         get?: never;
         /**
-         * 직접 입력 유가 변경
-         * @description 공공 유가 API를 못 쓸 때 크루가 정하는 유가입니다. 정산 때 공공 유가보다 우선합니다.
+         * 평소 탈 곳, 내릴 곳
+         * @description null은 지웁니다. 장소는 이 크루 것이어야 합니다.
          */
-        put: operations["changeFuelPrice"];
+        put: operations["changeMemberPlaces"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/crews/{crewId}/members/{crewMemberId}/attendance/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 그날 출석 바꾸기
+         * @description "오늘은 안 타요", "오늘만 후문에서 탈게요". 오늘(KST) 이후 날짜만 바꿀 수 있습니다. 바뀌면 바꾼 사람을 뺀 크루 멤버에게 rider.attendance-changed를 보냅니다. 이미 시작한 운행에는 영향이 없습니다 (운행 중 불참은 운행 API의 불참 처리).
+         */
+        put: operations["changeAttendance"];
         post?: never;
         delete?: never;
         options?: never;
@@ -103,9 +144,30 @@ export interface paths {
         get: operations["getDetours"];
         /**
          * 우회 거리 등록
-         * @description 차량 앱이 경유 경로와 직행 경로를 비교해 계산한 값을 올립니다. 같은 동승자, 운전자, 장소가 있으면 값을 바꾸고, 값이 달라지면 양측 확인을 초기화합니다.
+         * @description 차량 앱이 경유 경로와 직행 경로를 비교해 계산한 값을 올립니다. 같은 동승자, 운전자, 장소가 있으면 값을 바꾸고, 값이 달라지면 양측 확인을 초기화합니다. placeId는 운행 시작 때 그 동승자의 boardPlaceId(또는 alightPlaceId)와 같은 장소여야 정산에 들어갑니다. 출발지, 목적지에 등록한 값은 쓰지 않습니다.
          */
         put: operations["registerDetour"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cars/{carId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 차량 조회 */
+        get: operations["getCar"];
+        /**
+         * 차량 수정
+         * @description 연료 종류, 입력 연비, 직접 입력 유가를 바꿉니다. 바꿀 수 있는 값 전체를 보내고, null은 그 값을 지웁니다. 그 차를 등록한 멤버만 바꿀 수 있습니다. 정산은 운행에 쓴 차량의 유가를 쓰고, 없으면 연료별 공공 월평균을 씁니다. 이미 발행한 영수증은 바뀌지 않습니다.
+         */
+        put: operations["updateCar"];
         post?: never;
         delete?: never;
         options?: never;
@@ -448,7 +510,7 @@ export interface paths {
         put?: never;
         /**
          * 월 영수증 발행
-         * @description 크루의 정산 월 영수증을 (동승자, 운전자)마다 발행하고 새로 발행한 영수증을 반환합니다. 이미 발행된 영수증은 바뀌지 않고, 발행 뒤에 늦게 올라온 탑승은 다음 달 영수증에 들어갑니다. 운전자, 동승자가 둘 다 확인한 우회 거리만 반영합니다.
+         * @description 크루의 정산 월 영수증을 (동승자, 운전자)마다 발행하고 새로 발행한 영수증을 반환합니다. 매달 1일 새벽(KST) 서버가 지난달을 자동으로 발행하므로, 이 API는 자동 발행이 실패했거나(계좌, 유가 없음) 다시 시도할 때 씁니다. 끝난 달만 발행할 수 있습니다 (이번 달 이후면 SETTLEMENT_MONTH_NOT_CLOSED). 이미 발행된 영수증은 바뀌지 않고, 발행 뒤에 늦게 올라온 탑승은 다음 달 영수증에 들어갑니다. 운전자, 동승자가 둘 다 확인한 우회 거리만 반영합니다.
          */
         post: operations["issueReceipts"];
         delete?: never;
@@ -529,7 +591,7 @@ export interface paths {
         put?: never;
         /**
          * 차량 등록
-         * @description 내 차량으로 등록합니다. 같은 vehicleKey가 이미 있으면 그 차량에 나를 연결하고, 연료 종류와 입력 연비는 기존 값을 유지합니다. 운행을 시작하려면 운전자가 그 차량을 등록해 둬야 합니다.
+         * @description 내 차량으로 등록합니다. 같은 vehicleKey가 이미 있으면 그 차량에 나를 연결하고, 연료 종류와 입력 연비는 기존 값을 유지합니다 (바꾸려면 차량 수정). 운행을 시작하려면 운전자가 그 차량을 등록해 둬야 합니다.
          */
         post: operations["registerCar"];
         delete?: never;
@@ -624,7 +686,7 @@ export interface paths {
         };
         /**
          * 실시간 이벤트 구독 (SSE)
-         * @description 연결되면 먼저 connected 이벤트가 옵니다. 25초마다 keepalive 주석이 옵니다. 동승자: trip.started, vehicle.location, vehicle.approaching, vehicle.arrived, rider.boarded, driver.delayed, trip.ended. 운전자: rider.delayed, rider.here, rider.absent, rider.place-changed.
+         * @description 연결되면 먼저 connected 이벤트가 옵니다. 25초마다 keepalive 주석이 옵니다. 동승자: trip.started, vehicle.location, vehicle.approaching, vehicle.arrived, rider.boarded, driver.delayed, trip.ended. 운전자: rider.delayed, rider.here, rider.absent, rider.place-changed. 크루 멤버 모두: rider.attendance-changed (출발 전 출석 변경, data에 serviceDate), detour.confirm-requested.
          */
         get: operations["subscribe_1"];
         put?: never;
@@ -655,15 +717,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/crews/{crewId}": {
+    "/api/crews/{crewId}/trips/current": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 크루 조회 */
-        get: operations["getCrew"];
+        /**
+         * 진행 중인 운행
+         * @description 크루에 아직 끝나지 않은 운행이 있으면 돌려주고, 없으면 data 없이 성공합니다. 동승자 웹이 처음 열릴 때나 SSE가 끊겼다 다시 붙을 때 지금 상태를 맞추는 데 씁니다.
+         */
+        get: operations["getCurrentTrip"];
         put?: never;
         post?: never;
         delete?: never;
@@ -692,6 +757,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/crews/{crewId}/attendance/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 그날 출석 목록
+         * @description 크루 멤버 전원의 그날 출석입니다. 따로 정하지 않은 사람은 탐(attending: true), 평소 탈 곳으로 나옵니다.
+         */
+        get: operations["getAttendances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/crews/me": {
         parameters: {
             query?: never;
@@ -701,23 +786,6 @@ export interface paths {
         };
         /** 내 크루 목록 */
         get: operations["getMyCrews"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cars/{carId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 차량 조회 */
-        get: operations["getCar"];
         put?: never;
         post?: never;
         delete?: never;
@@ -801,7 +869,7 @@ export interface components {
         ErrorBody: {
             code: string;
             message: string;
-            fieldErrors: components["schemas"]["FieldErrorBody"][];
+            fieldErrors?: components["schemas"]["FieldErrorBody"][];
         };
         FieldErrorBody: {
             field: string;
@@ -890,18 +958,62 @@ export interface components {
             accountNumber: string;
             accountHolder: string;
         };
-        ChangeFuelPriceRequest: {
+        UpdateCrewRequest: {
+            /** @example 판교 출근 크루 */
+            name: string;
             /**
-             * Format: int32
-             * @description 직접 입력 유가 (원/L, EV는 원/kWh). null이면 해제하고 공공 유가를 씀
-             * @example 1684
+             * @description 평소 출발 시각 (KST, HH:mm)
+             * @example 08:00
              */
-            priceWon?: number | null;
+            departureTime?: string | null;
+            /**
+             * @description 카풀하는 요일
+             * @example [
+             *       "MONDAY",
+             *       "TUESDAY",
+             *       "WEDNESDAY",
+             *       "THURSDAY",
+             *       "FRIDAY"
+             *     ]
+             */
+            departureDays: ("MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY")[];
+            /**
+             * Format: int64
+             * @description 기본 출발지 장소 ID
+             * @example 1
+             */
+            originPlaceId?: number | null;
+            /**
+             * Format: int64
+             * @description 기본 목적지 장소 ID
+             * @example 4
+             */
+            destinationPlaceId?: number | null;
+            /**
+             * @description 정산 방식. FIXED_MONTHLY는 아직 지원하지 않음
+             * @example FAIR
+             * @enum {string}
+             */
+            settlementMode: "FAIR" | "EQUAL" | "FIXED_MONTHLY";
+            /**
+             * @description 구간 탑승 인원에 운전자를 포함할지
+             * @example true
+             */
+            includeDriver: boolean;
         };
         ApiResponseCrewResult: {
             success: boolean;
             data?: components["schemas"]["CrewResult"] | null;
             error?: components["schemas"]["ErrorBody"] | null;
+        };
+        CrewPlaceResult: {
+            /** Format: int64 */
+            placeId: number;
+            /** Format: int64 */
+            crewId: number;
+            name: string;
+            latitude: number;
+            longitude: number;
         };
         CrewResult: {
             /** Format: int64 */
@@ -912,8 +1024,79 @@ export interface components {
             includeDriver: boolean;
             /** Format: int32 */
             monthlyFixedWon?: number | null;
-            /** Format: int32 */
-            manualFuelPriceWon?: number | null;
+            /**
+             * @description 평소 출발 시각 (KST, HH:mm)
+             * @example 08:00
+             */
+            departureTime?: string | null;
+            /** @description 카풀하는 요일 */
+            departureDays: ("MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY")[];
+            originPlace?: components["schemas"]["CrewPlaceResult"] | null;
+            destinationPlace?: components["schemas"]["CrewPlaceResult"] | null;
+        };
+        ChangeMemberPlacesRequest: {
+            /**
+             * Format: int64
+             * @description 평소 탈 곳 장소 ID. null이면 지움
+             * @example 2
+             */
+            boardPlaceId?: number | null;
+            /**
+             * Format: int64
+             * @description 평소 내릴 곳 장소 ID. null이면 지움
+             * @example 4
+             */
+            alightPlaceId?: number | null;
+        };
+        ApiResponseCrewMemberResult: {
+            success: boolean;
+            data?: components["schemas"]["CrewMemberResult"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        CrewMemberResult: {
+            /** Format: int64 */
+            crewMemberId: number;
+            /** Format: int64 */
+            crewId: number;
+            /** Format: int64 */
+            memberId: number;
+            nickname: string;
+            /** Format: date-time */
+            joinedAt: string;
+            boardPlace?: components["schemas"]["CrewPlaceResult"] | null;
+            alightPlace?: components["schemas"]["CrewPlaceResult"] | null;
+        };
+        AttendanceRequest: {
+            /**
+             * @description 그날 타는지
+             * @example false
+             */
+            attending: boolean;
+            /**
+             * Format: int64
+             * @description 그날만 다른 탈 곳 장소 ID. null이면 기본 탈 곳
+             * @example 3
+             */
+            boardPlaceId?: number | null;
+        };
+        ApiResponseAttendanceResult: {
+            success: boolean;
+            data?: components["schemas"]["AttendanceResult"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        AttendanceResult: {
+            /** Format: int64 */
+            crewMemberId: number;
+            /** Format: int64 */
+            memberId: number;
+            nickname: string;
+            /** Format: date */
+            serviceDate: string;
+            attending: boolean;
+            boardPlace?: components["schemas"]["CrewPlaceResult"] | null;
+            alightPlace?: components["schemas"]["CrewPlaceResult"] | null;
+            /** @description 그날 출석을 따로 정했는지. false면 기본값 */
+            changed: boolean;
         };
         RegisterDetourRequest: {
             /**
@@ -960,6 +1143,40 @@ export interface components {
             /** Format: date-time */
             passengerConfirmedAt?: string | null;
             confirmed: boolean;
+        };
+        UpdateCarRequest: {
+            /**
+             * @description 연료 종류
+             * @example EV
+             * @enum {string}
+             */
+            fuelType: "GASOLINE" | "DIESEL" | "LPG" | "HYBRID" | "EV";
+            /**
+             * @description 입력 연비 (km/L, EV는 km/kWh). 실측 연비를 쓰면 null
+             * @example 5.8
+             */
+            manualFuelEconomy?: number | null;
+            /**
+             * Format: int32
+             * @description 직접 입력 유가 (원/L, EV는 원/kWh). 집 충전 단가처럼 공공 평균과 다를 때만. null이면 연료별 공공 월평균을 씀
+             * @example 180
+             */
+            manualFuelPriceWon?: number | null;
+        };
+        ApiResponseCarResult: {
+            success: boolean;
+            data?: components["schemas"]["CarResult"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        CarResult: {
+            /** Format: int64 */
+            carId: number;
+            vehicleKey: string;
+            /** @enum {string} */
+            fuelType: "GASOLINE" | "DIESEL" | "LPG" | "HYBRID" | "EV";
+            manualFuelEconomy?: number | null;
+            /** Format: int32 */
+            manualFuelPriceWon?: number | null;
         };
         RiderRequest: {
             /**
@@ -1161,22 +1378,6 @@ export interface components {
             crewId: number;
             token: string;
         };
-        ApiResponseCrewMemberResult: {
-            success: boolean;
-            data?: components["schemas"]["CrewMemberResult"] | null;
-            error?: components["schemas"]["ErrorBody"] | null;
-        };
-        CrewMemberResult: {
-            /** Format: int64 */
-            crewMemberId: number;
-            /** Format: int64 */
-            crewId: number;
-            /** Format: int64 */
-            memberId: number;
-            nickname: string;
-            /** Format: date-time */
-            joinedAt: string;
-        };
         CreateCrewRequest: {
             /** @example 판교 출근 크루 */
             name: string;
@@ -1218,6 +1419,10 @@ export interface components {
             boardingDays: number;
             sharedDistanceKm: number;
             detourKm: number;
+            /**
+             * @description 내 부담 거리 (km) = 유류비 ÷ km당 비용. 함께 탄 구간은 구간 인원으로 나눈 몫이고, 우회 거리는 전부 포함. 기획서 영수증의 '내 몫 거리'
+             * @example 162
+             */
             ownDistanceKm: number;
             fuelEconomy: number;
             /** @enum {string} */
@@ -1250,15 +1455,6 @@ export interface components {
             success: boolean;
             data?: components["schemas"]["CrewPlaceResult"] | null;
             error?: components["schemas"]["ErrorBody"] | null;
-        };
-        CrewPlaceResult: {
-            /** Format: int64 */
-            placeId: number;
-            /** Format: int64 */
-            crewId: number;
-            name: string;
-            latitude: number;
-            longitude: number;
         };
         ApiResponseInviteResult: {
             success: boolean;
@@ -1298,19 +1494,6 @@ export interface components {
              * @description 입력 연비 (km/L, EV는 km/kWh). 실측 연비를 못 쓰는 차종만 입력
              * @example 13.2
              */
-            manualFuelEconomy?: number | null;
-        };
-        ApiResponseCarResult: {
-            success: boolean;
-            data?: components["schemas"]["CarResult"] | null;
-            error?: components["schemas"]["ErrorBody"] | null;
-        };
-        CarResult: {
-            /** Format: int64 */
-            carId: number;
-            vehicleKey: string;
-            /** @enum {string} */
-            fuelType: "GASOLINE" | "DIESEL" | "LPG" | "HYBRID" | "EV";
             manualFuelEconomy?: number | null;
         };
         ApiResponseReceiptResult: {
@@ -1356,6 +1539,11 @@ export interface components {
         ApiResponseListDetourResult: {
             success: boolean;
             data?: components["schemas"]["DetourResult"][] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        ApiResponseListAttendanceResult: {
+            success: boolean;
+            data?: components["schemas"]["AttendanceResult"][] | null;
             error?: components["schemas"]["ErrorBody"] | null;
         };
         ApiResponseListCrewResult: {
@@ -1499,7 +1687,29 @@ export interface operations {
             };
         };
     };
-    changeFuelPrice: {
+    getCrew: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                crewId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseCrewResult"];
+                };
+            };
+        };
+    };
+    updateCrew: {
         parameters: {
             query?: never;
             header?: never;
@@ -1510,7 +1720,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ChangeFuelPriceRequest"];
+                "application/json": components["schemas"]["UpdateCrewRequest"];
             };
         };
         responses: {
@@ -1521,6 +1731,65 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseCrewResult"];
+                };
+            };
+        };
+    };
+    changeMemberPlaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                crewId: number;
+                crewMemberId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeMemberPlacesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseCrewMemberResult"];
+                };
+            };
+        };
+    };
+    changeAttendance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                crewId: number;
+                crewMemberId: number;
+                /**
+                 * @description 운행일 (KST)
+                 * @example 2026-11-09
+                 */
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttendanceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseAttendanceResult"];
                 };
             };
         };
@@ -1569,6 +1838,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseDetourResult"];
+                };
+            };
+        };
+    };
+    getCar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                carId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseCarResult"];
+                };
+            };
+        };
+    };
+    updateCar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                carId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCarRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseCarResult"];
                 };
             };
         };
@@ -2266,7 +2583,7 @@ export interface operations {
             };
         };
     };
-    getCrew: {
+    getCurrentTrip: {
         parameters: {
             query?: never;
             header?: never;
@@ -2283,7 +2600,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseCrewResult"];
+                    "*/*": components["schemas"]["ApiResponseTripResult"];
                 };
             };
         };
@@ -2310,6 +2627,33 @@ export interface operations {
             };
         };
     };
+    getAttendances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                crewId: number;
+                /**
+                 * @description 운행일 (KST)
+                 * @example 2026-11-09
+                 */
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListAttendanceResult"];
+                };
+            };
+        };
+    };
     getMyCrews: {
         parameters: {
             query?: never;
@@ -2326,28 +2670,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseListCrewResult"];
-                };
-            };
-        };
-    };
-    getCar: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                carId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseCarResult"];
                 };
             };
         };

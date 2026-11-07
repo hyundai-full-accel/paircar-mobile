@@ -1,1 +1,21 @@
 @import 'tailwindcss';
+
+/* 페어카 색. 컴포넌트는 bg-brand, text-brand처럼 이 이름으로 씀 */
+@theme {
+  --color-brand: #2563eb;
+  --color-brand-strong: #1d4ed8;
+  --color-brand-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    /* break-keep: 한국어를 글자 중간이 아니라 어절 단위로 줄바꿈 */
+    @apply bg-gray-100 text-gray-900 antialiased break-keep;
+  }
+}

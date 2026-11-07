@@ -1,27 +1,23 @@
+import { Card } from '../components/Card'
+import { Page } from '../components/Page'
+import { ErrorView, LoadingView } from '../components/StatusView'
 import { useMe } from '../hooks/useMe'
-import { getToken } from '../lib/token'
 
+// 크루 홈 (2단계에서 크루 정보, 진행 중 운행을 붙임)
 export function HomePage() {
-  const { data: me, isPending, error } = useMe()
+  const { data: me, isPending, error, refetch } = useMe()
 
   return (
-    <main className="flex flex-1 flex-col gap-2 p-6">
-      <h1 className="text-2xl font-bold text-gray-900">페어카</h1>
-      <HomeStatus hasToken={getToken() !== null} nickname={me?.nickname} isPending={isPending} error={error} />
-    </main>
+    <Page title="페어카">
+      {isPending ? (
+        <LoadingView />
+      ) : error ? (
+        <ErrorView error={error} onRetry={() => refetch()} />
+      ) : (
+        <Card>
+          <p className="text-gray-700">{me.nickname}님, 안녕하세요.</p>
+        </Card>
+      )}
+    </Page>
   )
-}
-
-type HomeStatusProps = {
-  hasToken: boolean
-  nickname?: string
-  isPending: boolean
-  error: Error | null
-}
-
-function HomeStatus({ hasToken, nickname, isPending, error }: HomeStatusProps) {
-  if (!hasToken) return <p className="text-gray-500">초대 링크로 들어와서 크루에 참여해 주세요.</p>
-  if (error) return <p className="text-red-600">{error.message}</p>
-  if (isPending) return <p className="text-gray-400">불러오는 중…</p>
-  return <p className="text-gray-700">{nickname}님, 안녕하세요.</p>
 }
