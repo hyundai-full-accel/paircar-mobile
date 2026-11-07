@@ -11,6 +11,7 @@ import { useMe } from '../hooks/useMe'
 import { cn } from '../lib/cn'
 import { formatServiceDate, upcomingCarpoolDays } from '../lib/dates'
 import { formatClock, formatDays } from '../lib/format'
+import { crewSections } from '../app/sections'
 import { NotFoundPage } from './NotFoundPage'
 
 // 크루 홈: 진행 중인 운행, 다음 카풀 날 내 출석, 크루 기본 일정, 크루원
@@ -45,7 +46,11 @@ function CrewHome({ crewId }: { crewId: number }) {
     )
   }
 
-  return <Page title={crew.data?.name ?? '크루'}>{content}</Page>
+  return (
+    <Page title="오늘의 카풀" sections={crewSections(crewId)}>
+      {content}
+    </Page>
+  )
 }
 
 function CurrentTripBanner({ trip }: { trip: Trip }) {
@@ -74,11 +79,11 @@ function NextCarpoolCard({ crew, myMember }: { crew: Crew; myMember: CrewMember 
 
   return (
     <Link to={`/crews/${crew.crewId}/attendance`}>
-      <Card className="flex items-center gap-3 active:bg-gray-50">
-        <CalendarCheck className={cn('size-6 shrink-0', mine?.attending === false ? 'text-gray-400' : 'text-brand')} />
+      <Card className="flex items-center gap-3 active:bg-surface">
+        <CalendarCheck className={cn('size-6 shrink-0', mine?.attending === false ? 'text-muted' : 'text-brand')} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="text-sm text-gray-500">{formatServiceDate(date)} 카풀</span>
-          <span className={cn('truncate font-semibold', mine?.attending === false && 'text-gray-500')}>{status}</span>
+          <span className="text-sm text-sub">{formatServiceDate(date)} 카풀</span>
+          <span className={cn('truncate font-semibold', mine?.attending === false && 'text-sub')}>{status}</span>
         </div>
         <span className="shrink-0 text-sm text-brand">출석 바꾸기</span>
       </Card>
@@ -99,7 +104,7 @@ function ScheduleCard({ crew }: { crew: Crew }) {
             .filter(Boolean)
             .join(' ')
         ) : (
-          <span className="text-gray-400">운전자가 아직 정하지 않았어요</span>
+          <span className="text-muted">운전자가 아직 정하지 않았어요</span>
         )}
       </Row>
       {hasRoute && (
@@ -123,16 +128,16 @@ function MemberList({ crewId, members, myMemberId, drivingMemberId }: MemberList
   return (
     <Card className="flex flex-col gap-1">
       <h2 className="mb-2 font-semibold">크루원 {members.length}명</h2>
-      <ul className="flex flex-col divide-y divide-gray-100">
+      <ul className="flex flex-col divide-y divide-line">
         {members.map((member) => {
           const isMe = member.memberId === myMemberId
           const row = <MemberRow member={member} isMe={isMe} driving={member.memberId === drivingMemberId} />
           return (
             <li key={member.crewMemberId}>
               {isMe ? (
-                <Link to={`/crews/${crewId}/my-places`} className="-mx-2 flex items-center rounded-xl px-2 active:bg-gray-50">
+                <Link to={`/crews/${crewId}/my-places`} className="-mx-2 flex items-center rounded-xl px-2 active:bg-surface">
                   {row}
-                  <ChevronRight className="size-5 shrink-0 text-gray-400" />
+                  <ChevronRight className="size-5 shrink-0 text-muted" />
                 </Link>
               ) : (
                 row
@@ -152,7 +157,7 @@ function MemberRow({ member, isMe, driving }: { member: CrewMember; isMe: boolea
       <div
         className={cn(
           'flex size-10 shrink-0 items-center justify-center rounded-full font-semibold',
-          isMe ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600',
+          isMe ? 'bg-brand text-white' : 'bg-surface text-sub',
         )}
       >
         {member.nickname.slice(0, 1)}
@@ -163,7 +168,7 @@ function MemberRow({ member, isMe, driving }: { member: CrewMember; isMe: boolea
           {isMe && <Badge className="bg-brand-soft text-brand">나</Badge>}
           {driving && <Badge className="bg-green-50 text-green-700">운전 중</Badge>}
         </span>
-        {place && <span className={cn('truncate text-sm', isMe && !member.boardPlace ? 'text-brand' : 'text-gray-500')}>{place}</span>}
+        {place && <span className={cn('truncate text-sm', isMe && !member.boardPlace ? 'text-brand' : 'text-sub')}>{place}</span>}
       </div>
     </div>
   )
@@ -182,8 +187,8 @@ function Badge({ className, children }: { className: string; children: ReactNode
 
 function Row({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 text-gray-700">
-      <span className="text-gray-400">{icon}</span>
+    <div className="flex items-center gap-3 text-ink">
+      <span className="text-muted">{icon}</span>
       <span>{children}</span>
     </div>
   )

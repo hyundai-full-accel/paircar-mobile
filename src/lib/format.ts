@@ -29,12 +29,17 @@ const DAY_LABEL: Record<DayOfWeek, string> = {
   SUNDAY: '일',
 }
 
-// ["MONDAY", ..., "FRIDAY"] → "평일", 7일 → "매일", 그 밖은 "월 · 수 · 금"
+// 시안 표기: 7일 → "매일", 이어진 요일 → "월-금", 그 밖은 "월 · 수 · 금"
 export function formatDays(days: DayOfWeek[]): string {
-  const set = new Set(days)
-  if (set.size === 7) return '매일'
-  if (set.size === 5 && DAY_ORDER.slice(0, 5).every((day) => set.has(day))) return '평일'
-  return DAY_ORDER.filter((day) => set.has(day))
-    .map((day) => DAY_LABEL[day])
-    .join(' · ')
+  const indexes = DAY_ORDER.map((day, i) => (days.includes(day) ? i : -1)).filter((i) => i >= 0)
+  if (indexes.length === 7) return '매일'
+  const consecutive = indexes.length >= 3 && indexes.every((n, i) => i === 0 || n === indexes[i - 1] + 1)
+  if (consecutive) return `${DAY_LABEL[DAY_ORDER[indexes[0]]]}-${DAY_LABEL[DAY_ORDER[indexes[indexes.length - 1]]]}`
+  return indexes.map((i) => DAY_LABEL[DAY_ORDER[i]]).join(' · ')
+}
+
+// "2026.11.07" (KST)
+export function formatDotDate(iso: string | Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(new Date(iso))
+  return parts.replaceAll('-', '.')
 }

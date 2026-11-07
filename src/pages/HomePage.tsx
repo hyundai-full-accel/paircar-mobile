@@ -24,12 +24,12 @@ export function HomePage() {
           {crews.map((crew) => (
             <li key={crew.crewId}>
               <Link to={`/crews/${crew.crewId}`}>
-                <Card className="flex items-center gap-3 active:bg-gray-50">
+                <Card className="flex items-center gap-3 active:bg-surface">
                   <div className="flex size-10 items-center justify-center rounded-full bg-brand-soft text-brand">
                     <Users className="size-5" />
                   </div>
                   <span className="flex-1 font-semibold">{crew.name}</span>
-                  <ChevronRight className="size-5 text-gray-400" />
+                  <ChevronRight className="size-5 text-muted" />
                 </Card>
               </Link>
             </li>

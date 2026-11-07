@@ -9,7 +9,7 @@ export function DetoursPage() {
   return (
     <Page title="우회 거리 확인" back>
       <Card>
-        <p className="text-gray-500">크루 {crewId}</p>
+        <p className="text-sub">크루 {crewId}</p>
       </Card>
     </Page>
   )

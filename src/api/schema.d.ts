@@ -706,7 +706,7 @@ export interface paths {
         };
         /**
          * 초대 조회
-         * @description 참여 화면에 크루 이름을 보여줄 때 씁니다. 인증이 필요 없습니다.
+         * @description 참여 화면에 보여 줄 크루 소개입니다 (이름, 일정, 출발지·목적지, 인원, 운전자 이름, 정산 방식, 크루 장소). 인증이 필요 없습니다.
          */
         get: operations["getInvite"];
         put?: never;
@@ -1063,6 +1063,8 @@ export interface components {
             nickname: string;
             /** Format: date-time */
             joinedAt: string;
+            /** @description 차를 등록한 멤버 (운전할 수 있음). 화면의 운전자/동승자 표시. 실제 운전자는 운행마다 정해짐 */
+            driver: boolean;
             boardPlace?: components["schemas"]["CrewPlaceResult"] | null;
             alightPlace?: components["schemas"]["CrewPlaceResult"] | null;
         };
@@ -1525,6 +1527,45 @@ export interface components {
         SseEmitter: {
             /** Format: int64 */
             timeout?: number | null;
+        };
+        ApiResponseInvitePreviewResult: {
+            success: boolean;
+            data?: components["schemas"]["InvitePreviewResult"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        InvitePreviewResult: {
+            code: string;
+            /** Format: int64 */
+            crewId: number;
+            crewName: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @enum {string} */
+            settlementMode: "FAIR" | "EQUAL" | "FIXED_MONTHLY";
+            includeDriver: boolean;
+            /**
+             * @description 평소 출발 시각 (KST, HH:mm)
+             * @example 07:10
+             */
+            departureTime?: string | null;
+            departureDays: ("MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY")[];
+            originPlace?: components["schemas"]["CrewPlaceResult"] | null;
+            destinationPlace?: components["schemas"]["CrewPlaceResult"] | null;
+            /**
+             * Format: int32
+             * @description 지금 크루 인원 (운전자 포함)
+             * @example 3
+             */
+            memberCount: number;
+            /**
+             * @description 차를 등록한 크루원 이름 (운전자)
+             * @example [
+             *       "민혁"
+             *     ]
+             */
+            driverNicknames: string[];
+            /** @description 크루 장소 (평소 탈 곳, 내릴 곳 고르기) */
+            places: components["schemas"]["CrewPlaceResult"][];
         };
         ApiResponseListCrewPlaceResult: {
             success: boolean;
@@ -2578,7 +2619,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseInviteResult"];
+                    "*/*": components["schemas"]["ApiResponseInvitePreviewResult"];
                 };
             };
         };

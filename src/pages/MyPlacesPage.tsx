@@ -63,7 +63,7 @@ function MyPlacesForm({ crewId, member, places }: { crewId: number; member: Crew
 
   return (
     <>
-      <p className="px-1 text-sm text-gray-600">
+      <p className="px-1 text-sm text-sub">
         운전자가 출발 전에 이 장소로 경유지를 잡아요. 그날만 다른 곳에서 탈 때는 출석에서 바꾸면 돼요.
       </p>
       <PlacePicker crewId={crewId} title="탈 곳" places={places} selectedId={boardPlaceId} onSelect={setBoardPlaceId} />
@@ -104,13 +104,13 @@ function PlacePicker({ crewId, title, places, selectedId, onSelect }: PlacePicke
                 onClick={() => onSelect(place.placeId)}
                 className={cn(
                   'flex h-12 items-center gap-3 rounded-xl px-3 text-left transition-colors',
-                  selected ? 'bg-brand-soft font-semibold text-brand' : 'active:bg-gray-50',
+                  selected ? 'bg-brand-soft font-semibold text-brand' : 'active:bg-surface',
                 )}
               >
                 <span
                   className={cn(
                     'flex size-5 shrink-0 items-center justify-center rounded-full border-2',
-                    selected ? 'border-brand bg-brand text-white' : 'border-gray-300',
+                    selected ? 'border-brand bg-brand text-white' : 'border-line',
                   )}
                 >
                   {selected && <Check className="size-3" strokeWidth={3} />}
@@ -166,7 +166,7 @@ function AddPlaceForm({ crewId, onAdded, onCancel }: { crewId: number; onAdded: 
   const duplicated = error instanceof ApiError && error.code === 'CREW_PLACE_NAME_DUPLICATED'
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-gray-50 p-3">
+    <div className="flex flex-col gap-3 rounded-xl bg-surface-soft p-3">
       <TextField
         label="장소 이름"
         placeholder="예: ○○아파트 정문"

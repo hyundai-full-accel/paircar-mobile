@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { api, ApiError, unwrap } from '../api/client'
 import { setToken } from '../lib/token'
 
-// 초대 미리보기 (크루 이름, 만료 시각). 토큰 없이 부름
+// 초대 미리보기 (크루 이름, 일정, 인원, 운전자, 정산 방식, 크루 장소). 토큰 없이 부름
 export function useInvite(code: string) {
   return useQuery({
     queryKey: ['invites', code],
@@ -11,18 +11,36 @@ export function useInvite(code: string) {
   })
 }
 
-// 처음 온 동승자: 닉네임으로 멤버를 만들고 크루에 참여한 뒤 그 크루 홈으로 감
-// 받은 토큰은 이 응답에서만 오므로 바로 저장. 저장하면 참여 화면이 바뀌므로 이동을 먼저 함
-export function useJoinAsNewMember(code: string) {
+export type JoinForm = {
+  nickname: string
+  boardPlaceId: number | null
+  alightPlaceId: number | null
+}
+
+// 처음 온 동승자 참여 (참여 3단계의 마지막): 멤버를 만들어 크루에 넣고 → 토큰 저장 → 평소 탈 곳 저장 → 크루 홈
+// 토큰은 이 응답에서만 오므로 바로 저장. 탈 곳 저장이 실패해도 참여는 된 것이라 크루 홈으로 감 (나중에 다시 정함)
+export function useJoinCrew(code: string) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   return useMutation({
-    mutationFn: (nickname: string) =>
-      unwrap(api.POST('/api/invites/{code}/members', { params: { path: { code } }, body: { nickname } })),
-    onSuccess: (result) => {
+    mutationFn: async ({ nickname, boardPlaceId, alightPlaceId }: JoinForm) => {
+      const joined = await unwrap(
+        api.POST('/api/invites/{code}/members', { params: { path: { code } }, body: { nickname } }),
+      )
+      setToken(joined.token)
+      if (boardPlaceId !== null || alightPlaceId !== null) {
+        await unwrap(
+          api.PUT('/api/crews/{crewId}/members/{crewMemberId}/places', {
+            params: { path: { crewId: joined.crewId, crewMemberId: joined.crewMemberId } },
+            body: { boardPlaceId, alightPlaceId },
+          }),
+        ).catch(() => undefined)
+      }
+      return joined
+    },
+    onSuccess: (joined) => {
       queryClient.clear() // 이전 사람의 캐시가 남지 않게
-      navigate(`/crews/${result.crewId}`, { replace: true })
-      setToken(result.token)
+      navigate(`/crews/${joined.crewId}`, { replace: true })
     },
   })
 }

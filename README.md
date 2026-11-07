@@ -30,7 +30,7 @@ npm run dev
 | `npm run build` | 타입 검사 후 `dist/`에 빌드. 아이콘, manifest, 서비스 워커도 함께 만듦 |
 | `npm run preview` | 빌드 결과 확인 |
 | `npm run lint` | ESLint |
-| `npm run gen:api` | 서버 Swagger(`http://localhost/v3/api-docs`)에서 API 타입을 다시 만듦. 서버 API가 바뀌면 실행 |
+| `npm run gen:api` | 서버가 내보낸 API 명세(`../paircar-server/build/openapi.json`)로 API 타입을 다시 만듦. 서버를 띄울 필요 없음. 먼저 서버에서 `./gradlew test --tests '*OpenApiExportTest'` 실행 |
 
 ## 구조
 

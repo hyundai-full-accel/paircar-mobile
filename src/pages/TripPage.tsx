@@ -9,7 +9,7 @@ export function TripPage() {
   return (
     <Page title="운행" back>
       <Card>
-        <p className="text-gray-500">운행 {tripId}</p>
+        <p className="text-sub">운행 {tripId}</p>
       </Card>
     </Page>
   )

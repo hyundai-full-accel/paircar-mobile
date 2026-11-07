@@ -41,7 +41,7 @@ function AttendanceList({ crewId }: { crewId: number }) {
     const member = myMember.data
     content = (
       <>
-        <p className="px-1 text-sm text-gray-600">안 타는 날만 바꾸면 돼요. 바꾸면 운전자에게 바로 알려 줘요.</p>
+        <p className="px-1 text-sm text-sub">안 타는 날만 바꾸면 돼요. 바꾸면 운전자에게 바로 알려 줘요.</p>
         {dates.map((date, i) => (
           <DayCard key={date} crewId={crewId} date={date} member={member} places={places.data} query={attendances[i]} />
         ))}
@@ -77,13 +77,13 @@ function DayCard({ crewId, date, member, places, query }: DayCardProps) {
     <Card className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold">{formatServiceDate(date)}</h2>
-        {(query.isFetching || change.isPending) && <Spinner className="size-4 text-gray-400" />}
+        {(query.isFetching || change.isPending) && <Spinner className="size-4 text-muted" />}
       </div>
       {query.isError ? (
         <p className="text-sm text-red-600">{errorMessage(query.error)}</p>
       ) : mine ? (
         <>
-          <div role="radiogroup" aria-label={`${formatServiceDate(date)} 출석`} className="grid grid-cols-2 gap-1 rounded-xl bg-gray-100 p-1">
+          <div role="radiogroup" aria-label={`${formatServiceDate(date)} 출석`} className="grid grid-cols-2 gap-1 rounded-xl bg-surface p-1">
             <Segment selected={mine.attending} disabled={change.isPending} onClick={() => set(true, overridePlaceId)}>
               타요
             </Segment>
@@ -93,12 +93,12 @@ function DayCard({ crewId, date, member, places, query }: DayCardProps) {
           </div>
           {mine.attending && (
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm text-gray-500">이날 탈 곳</span>
+              <span className="text-sm text-sub">이날 탈 곳</span>
               <select
                 value={overridePlaceId ?? ''}
                 disabled={change.isPending}
                 onChange={(e) => set(true, e.target.value ? Number(e.target.value) : null)}
-                className="h-12 rounded-xl border border-gray-300 bg-white px-3 text-base outline-none focus:border-brand"
+                className="h-12 rounded-xl border border-line bg-white px-3 text-base outline-none focus:border-brand"
               >
                 <option value="">{member.boardPlace ? `평소처럼 (${member.boardPlace.name})` : '평소 탈 곳 없음'}</option>
                 {places
@@ -130,7 +130,7 @@ function Segment({ selected, disabled, onClick, children }: { selected: boolean;
       onClick={selected ? undefined : onClick}
       className={cn(
         'h-10 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60',
-        selected ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500',
+        selected ? 'bg-white text-ink shadow-sm' : 'text-sub',
       )}
     >
       {children}

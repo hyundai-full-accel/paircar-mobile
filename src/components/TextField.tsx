@@ -7,6 +7,7 @@ type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   hint?: string
 }
 
+// 회색 면 입력칸 (시안 "크루에서 사용할 이름")
 // react-hook-form의 register를 그대로 펼쳐 쓰면 됨: <TextField label="닉네임" {...register('nickname')} />
 export function TextField({ label, error, hint, className, id, ...props }: TextFieldProps) {
   const generatedId = useId()
@@ -15,8 +16,8 @@ export function TextField({ label, error, hint, className, id, ...props }: TextF
   const message = error ?? hint
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
+    <div className="flex flex-col gap-2">
+      <label htmlFor={inputId} className="text-[15px] font-semibold">
         {label}
       </label>
       <input
@@ -24,15 +25,15 @@ export function TextField({ label, error, hint, className, id, ...props }: TextF
         aria-invalid={error ? true : undefined}
         aria-describedby={message ? messageId : undefined}
         className={cn(
-          'h-12 rounded-xl border border-gray-300 bg-white px-4 text-base outline-none transition-colors',
-          'placeholder:text-gray-400 focus:border-brand focus:ring-2 focus:ring-brand/20',
-          error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+          'h-13 rounded-xl border border-transparent bg-surface px-4 text-base outline-none transition-colors',
+          'placeholder:text-muted focus:border-ink focus:bg-white',
+          error && 'border-red-500 bg-white',
           className,
         )}
         {...props}
       />
       {message && (
-        <p id={messageId} className={cn('text-sm', error ? 'text-red-600' : 'text-gray-500')}>
+        <p id={messageId} className={cn('text-sm', error ? 'text-red-600' : 'text-sub')}>
           {message}
         </p>
       )}

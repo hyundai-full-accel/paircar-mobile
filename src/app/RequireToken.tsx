@@ -26,9 +26,9 @@ export function RequireToken() {
         </div>
         <div className="flex flex-col gap-2">
           <h1 className="text-xl font-bold">초대 링크로 들어와 주세요</h1>
-          <p className="text-gray-600">운전자에게 받은 초대 링크나 QR로 들어오면 크루에 참여할 수 있어요.</p>
+          <p className="text-sub">운전자에게 받은 초대 링크나 QR로 들어오면 크루에 참여할 수 있어요.</p>
         </div>
-        <Card className="w-full text-left text-sm text-gray-600">
+        <Card className="w-full text-left text-sm text-sub">
           이전에 참여했는데 이 화면이 보이면, 브라우저 데이터가 지워졌거나 기기가 바뀐 거예요. 운전자에게 초대 링크를 다시 받아 주세요.
         </Card>
       </div>

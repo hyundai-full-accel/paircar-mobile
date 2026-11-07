@@ -18,7 +18,7 @@ export function ErrorView({ error, onRetry }: { error: unknown; onRetry?: () => 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
       <CircleAlert className="size-10 text-red-500" />
-      <p className="text-gray-700">{errorMessage(error)}</p>
+      <p className="text-ink">{errorMessage(error)}</p>
       {onRetry && (
         <Button variant="secondary" onClick={onRetry}>
           다시 시도
@@ -32,8 +32,8 @@ export function ErrorView({ error, onRetry }: { error: unknown; onRetry?: () => 
 export function EmptyView({ message, children }: { message: string; children?: ReactNode }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
-      <Inbox className="size-10 text-gray-300" />
-      <p className="text-gray-500">{message}</p>
+      <Inbox className="size-10 text-muted" />
+      <p className="text-sub">{message}</p>
       {children}
     </div>
   )

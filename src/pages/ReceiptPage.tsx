@@ -9,7 +9,7 @@ export function ReceiptPage() {
   return (
     <Page title="영수증" back>
       <Card>
-        <p className="text-gray-500">영수증 {receiptId}</p>
+        <p className="text-sub">영수증 {receiptId}</p>
       </Card>
     </Page>
   )
