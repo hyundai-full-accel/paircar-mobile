@@ -36,7 +36,7 @@ function CrewHome({ crewId }: { crewId: number }) {
       <>
         {currentTrip.data && <CurrentTripBanner trip={currentTrip.data} />}
         <ScheduleCard crew={crew.data} />
-        <MemberList members={members.data} myMemberId={me.data?.memberId} drivingMemberId={currentTrip.data?.driverMemberId} />
+        <MemberList crewId={crewId} members={members.data} myMemberId={me.data?.memberId} drivingMemberId={currentTrip.data?.driverMemberId} />
       </>
     )
   }
@@ -85,42 +85,60 @@ function ScheduleCard({ crew }: { crew: Crew }) {
 }
 
 type MemberListProps = {
+  crewId: number
   members: CrewMember[]
   myMemberId?: number
   drivingMemberId?: number // 지금 운전 중인 사람
 }
 
-function MemberList({ members, myMemberId, drivingMemberId }: MemberListProps) {
+// 내 줄을 누르면 평소 탈 곳을 정하는 화면으로 감
+function MemberList({ crewId, members, myMemberId, drivingMemberId }: MemberListProps) {
   return (
     <Card className="flex flex-col gap-1">
       <h2 className="mb-2 font-semibold">크루원 {members.length}명</h2>
       <ul className="flex flex-col divide-y divide-gray-100">
         {members.map((member) => {
           const isMe = member.memberId === myMemberId
-          const place = placeText(member, isMe)
+          const row = <MemberRow member={member} isMe={isMe} driving={member.memberId === drivingMemberId} />
           return (
-            <li key={member.crewMemberId} className="flex items-center gap-3 py-3">
-              <div
-                className={cn(
-                  'flex size-10 shrink-0 items-center justify-center rounded-full font-semibold',
-                  isMe ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600',
-                )}
-              >
-                {member.nickname.slice(0, 1)}
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="flex items-center gap-1.5 font-medium">
-                  {member.nickname}
-                  {isMe && <Badge className="bg-brand-soft text-brand">나</Badge>}
-                  {member.memberId === drivingMemberId && <Badge className="bg-green-50 text-green-700">운전 중</Badge>}
-                </span>
-                {place && <span className="truncate text-sm text-gray-500">{place}</span>}
-              </div>
+            <li key={member.crewMemberId}>
+              {isMe ? (
+                <Link to={`/crews/${crewId}/my-places`} className="-mx-2 flex items-center rounded-xl px-2 active:bg-gray-50">
+                  {row}
+                  <ChevronRight className="size-5 shrink-0 text-gray-400" />
+                </Link>
+              ) : (
+                row
+              )}
             </li>
           )
         })}
       </ul>
     </Card>
+  )
+}
+
+function MemberRow({ member, isMe, driving }: { member: CrewMember; isMe: boolean; driving: boolean }) {
+  const place = placeText(member, isMe)
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-3 py-3">
+      <div
+        className={cn(
+          'flex size-10 shrink-0 items-center justify-center rounded-full font-semibold',
+          isMe ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600',
+        )}
+      >
+        {member.nickname.slice(0, 1)}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="flex items-center gap-1.5 font-medium">
+          {member.nickname}
+          {isMe && <Badge className="bg-brand-soft text-brand">나</Badge>}
+          {driving && <Badge className="bg-green-50 text-green-700">운전 중</Badge>}
+        </span>
+        {place && <span className={cn('truncate text-sm', isMe && !member.boardPlace ? 'text-brand' : 'text-gray-500')}>{place}</span>}
+      </div>
+    </div>
   )
 }
 

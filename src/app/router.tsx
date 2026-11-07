@@ -3,6 +3,7 @@ import { CrewHomePage } from '../pages/CrewHomePage'
 import { DetoursPage } from '../pages/DetoursPage'
 import { HomePage } from '../pages/HomePage'
 import { JoinPage } from '../pages/JoinPage'
+import { MyPlacesPage } from '../pages/MyPlacesPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ReceiptPage } from '../pages/ReceiptPage'
 import { TripPage } from '../pages/TripPage'
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/', element: <HomePage /> },
           { path: '/crews/:crewId', element: <CrewHomePage /> },
+          { path: '/crews/:crewId/my-places', element: <MyPlacesPage /> },
           { path: '/trips/:tripId', element: <TripPage /> },
           { path: '/crews/:crewId/detours', element: <DetoursPage /> },
           { path: '/receipts/:receiptId', element: <ReceiptPage /> },
