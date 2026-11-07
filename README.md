@@ -94,3 +94,4 @@ const me = await unwrap(api.GET('/api/members/me'))
    - **SPA 폴백:** 없는 경로(`/join/ABCD2345`, `/trips/12`)는 `index.html`로 응답
    - **`sw.js`는 캐시하지 않음** (`Cache-Control: no-cache`). 캐시되면 새 버전이 늦게 퍼짐
    - **HTTPS 필수** (서비스 워커, 폰 알림)
+# paircar-mobile
