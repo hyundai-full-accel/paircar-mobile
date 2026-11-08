@@ -1,5 +1,5 @@
 import { CalendarX, Check, Clock, MapPin } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { lazy, Suspense, useMemo, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import type { Crew, CrewMember, Trip } from '../api/types'
 import { crewSections } from '../app/sections'
@@ -12,12 +12,17 @@ import { Page } from '../components/Page'
 import { EmptyView, ErrorView, LoadingView } from '../components/StatusView'
 import { useAttendances } from '../hooks/useAttendance'
 import { useCrewView, useCurrentTrip } from '../hooks/useCrew'
+import type { MapStop, StopRole } from '../components/map/RouteMap'
+import { useRoute } from '../hooks/useRoute'
 import { useTripNotice, useTripRequest, useVehicle } from '../hooks/useTrip'
 import { cn } from '../lib/cn'
 import { formatServiceDate, todayKst, upcomingCarpoolDays } from '../lib/dates'
 import { errorMessage } from '../lib/errors'
 import { formatDistance, formatDotDate, formatEta } from '../lib/format'
 import { NotFoundPage } from './NotFoundPage'
+
+// 지도 라이브러리가 커서 지도가 보일 때만 불러옴
+const RouteMap = lazy(() => import('../components/map/RouteMap'))
 
 // 오늘의 카풀 (시안 M04): 차가 어디쯤인지, 내가 탔는지, 오늘 바꿀 것
 // 운행 중이면 실시간 값(남은 거리·시간, 곧 도착)으로, 운행 전이면 다음 카풀 날 내 출석으로 위쪽을 채움
@@ -43,6 +48,7 @@ function Today({ crewId }: { crewId: number }) {
     content = (
       <>
         {trip ? <TripHero trip={trip} me={view.myMember} /> : <NextCarpoolHero crew={view.crew} me={view.myMember} />}
+        {trip ? <TripMapCard trip={trip} me={view.myMember} /> : <PlannedMapCard crew={view.crew} me={view.myMember} />}
         {trip && <MyBoardingCard trip={trip} me={view.myMember} />}
         <ChangeTiles crewId={crewId} />
       </>
@@ -119,6 +125,94 @@ function NextCarpoolHero({ crew, me }: { crew: Crew; me: CrewMember }) {
         {!mine ? ' ' : mine.attending ? (mine.boardPlace ? `${mine.boardPlace.name}에서 타요` : '타요') : '이날은 안 타요'}
       </p>
     </Hero>
+  )
+}
+
+type PlaceLike = { placeId: number; name: string; latitude: number; longitude: number }
+
+// 지점을 순서대로 넣음. 같은 장소가 또 나오면 새로 넣지 않고, 내가 타고 내리는 곳이면 그 표시로 바꿈
+function addStop(stops: MapStop[], place: PlaceLike | null | undefined, role: StopRole) {
+  if (!place) return
+  const existing = stops.find((it) => it.key === String(place.placeId))
+  if (existing) {
+    if (role === 'board' || role === 'alight') existing.role = role
+    return
+  }
+  stops.push({ key: String(place.placeId), name: place.name, latitude: place.latitude, longitude: place.longitude, role })
+}
+
+// 운행 중: 이번 운행 경로(출발 → 경유지 → 도착)와 차 위치
+function TripMapCard({ trip, me }: { trip: Trip; me: CrewMember }) {
+  const vehicle = useVehicle(trip.tripId)
+  const mine = trip.boardings.find((it) => it.crewMemberId === me.crewMemberId)
+  const stops = useMemo(() => {
+    const list: MapStop[] = []
+    addStop(list, trip.origin, 'origin')
+    trip.waypoints.forEach((waypoint) => {
+      const role = waypoint.placeId === mine?.boardPlaceId ? 'board' : waypoint.placeId === mine?.alightPlaceId ? 'alight' : 'stop'
+      addStop(list, waypoint, role)
+    })
+    addStop(list, trip.destination, trip.destination.placeId === mine?.alightPlaceId ? 'alight' : 'destination')
+    return list
+  }, [trip, mine?.boardPlaceId, mine?.alightPlaceId])
+  const position = useMemo(
+    () => (vehicle ? { latitude: vehicle.latitude, longitude: vehicle.longitude } : null),
+    [vehicle],
+  )
+
+  return (
+    <MapCard
+      stops={stops}
+      vehicle={position}
+      note={vehicle ? '차 위치는 운전자 차량 앱이 10초마다 보내요.' : '운전자 차량 앱이 위치를 보내면 차가 표시돼요.'}
+    />
+  )
+}
+
+// 운행 전: 크루 출발지 → 내가 탈 곳 → 내릴 곳 → 도착지 (다음 카풀 날 출석에 바꾼 곳이 있으면 그 곳)
+function PlannedMapCard({ crew, me }: { crew: Crew; me: CrewMember }) {
+  const [date] = upcomingCarpoolDays(crew.departureDays, 1)
+  const [attendance] = useAttendances(crew.crewId, [date])
+  const mine = attendance.data?.find((it) => it.crewMemberId === me.crewMemberId)
+  const riding = mine?.attending !== false
+  const board = riding ? (mine?.boardPlace ?? me.boardPlace) : null
+  const alight = riding ? (mine?.alightPlace ?? me.alightPlace) : null
+
+  const stops = useMemo(() => {
+    const list: MapStop[] = []
+    addStop(list, crew.originPlace, 'origin')
+    addStop(list, board, 'board')
+    addStop(list, alight, 'alight')
+    addStop(list, crew.destinationPlace, 'destination')
+    return list
+  }, [crew.originPlace, crew.destinationPlace, board, alight])
+
+  const note = !board ? '탈 곳을 정하면 지도에 표시돼요.' : '평소 경로예요. 운행이 시작되면 차 위치가 표시돼요.'
+  return <MapCard stops={stops} vehicle={null} note={note} />
+}
+
+function MapCard({ stops, vehicle, note }: { stops: MapStop[]; vehicle: { latitude: number; longitude: number } | null; note: string }) {
+  const route = useRoute(stops)
+
+  if (stops.length === 0) {
+    return (
+      <Card className="flex flex-col gap-1 p-4 text-sm text-sub">
+        <span className="font-semibold text-ink">경로 지도</span>
+        크루 출발지·도착지나 내 탈 곳이 정해지면 지도에 보여요.
+      </Card>
+    )
+  }
+
+  return (
+    <section className="flex flex-col gap-2">
+      <Suspense fallback={<div className="flex h-56 items-center justify-center rounded-xl bg-surface text-sm text-muted">지도를 불러오는 중…</div>}>
+        <RouteMap stops={stops} path={route.data?.path ?? null} vehicle={vehicle} className="h-56" />
+      </Suspense>
+      <p className="px-1 text-xs text-muted">
+        {note}
+        {route.data?.approximate && stops.length >= 2 ? ' 길찾기를 못 해서 지점끼리 직선으로 이었어요.' : ''}
+      </p>
+    </section>
   )
 }
 

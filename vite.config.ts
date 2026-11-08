@@ -30,6 +30,8 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // 지도(maplibre, 약 1MB, mapBase 묶음)는 지도가 보일 때만 받음. 타일도 인터넷이 있어야 보이므로 미리 캐시하지 않음
+        globIgnores: ['**/mapBase-*', '**/PlaceMap-*', '**/RouteMap-*'],
       },
       // 개발 서버(localhost)에서도 서비스 워커를 띄워 Push를 시험할 수 있게 함
       // 개발 때 precache 목록이 비면 sw.ts의 index.html 폴백이 실패하므로 index.html을 넣어 줌

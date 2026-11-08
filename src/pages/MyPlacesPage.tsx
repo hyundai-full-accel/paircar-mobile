@@ -1,5 +1,5 @@
-import { Check, LocateFixed, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { Check, MapPin, Plus } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import type { CrewMember, CrewPlace } from '../api/types'
@@ -13,8 +13,18 @@ import { useMe } from '../hooks/useMe'
 import { useChangeMemberPlaces, useCrewPlaces, useRegisterPlace } from '../hooks/usePlaces'
 import { cn } from '../lib/cn'
 import { errorMessage } from '../lib/errors'
-import { getCurrentPosition } from '../lib/location'
+import type { Coordinates } from '../lib/location'
 import { NotFoundPage } from './NotFoundPage'
+
+// 지도 라이브러리가 커서 장소를 추가할 때만 불러옴
+const PlaceMap = lazy(() => import('../components/map/PlaceMap'))
+
+type AddPlaceFormProps = {
+  crewId: number
+  places: CrewPlace[]
+  onAdded: (placeId: number) => void
+  onCancel: () => void
+}
 
 // 평소 탈 곳, 내릴 곳. 운전자는 출발 전에 이 값(과 그날 출석)으로 경유지를 정함
 export function MyPlacesPage() {
@@ -124,6 +134,7 @@ function PlacePicker({ crewId, title, places, selectedId, onSelect }: PlacePicke
       {adding ? (
         <AddPlaceForm
           crewId={crewId}
+          places={places}
           onAdded={(placeId) => {
             onSelect(placeId)
             setAdding(false)
@@ -133,36 +144,27 @@ function PlacePicker({ crewId, title, places, selectedId, onSelect }: PlacePicke
       ) : (
         <Button variant="ghost" className="justify-start px-3 text-brand" onClick={() => setAdding(true)}>
           <Plus className="size-5" />
-          지금 있는 곳을 새 장소로 추가
+          새 장소 추가
         </Button>
       )}
     </Card>
   )
 }
 
-// 지금 서 있는 곳을 이름 붙여 크루 장소로 등록 (지도 없이 폰 위치로)
-function AddPlaceForm({ crewId, onAdded, onCancel }: { crewId: number; onAdded: (placeId: number) => void; onCancel: () => void }) {
+// 지도에서 고른 곳을 이름 붙여 크루 장소로 등록. 지도 오른쪽 아래 버튼으로 내 위치로 옮길 수 있음
+function AddPlaceForm({ crewId, places, onAdded, onCancel }: AddPlaceFormProps) {
   const [name, setName] = useState('')
-  const [locating, setLocating] = useState(false)
-  const [error, setError] = useState<unknown>(null)
+  const [center, setCenter] = useState<Coordinates | null>(null)
   const register = useRegisterPlace(crewId)
 
   const trimmed = name.trim()
 
-  const onAdd = async () => {
-    setError(null)
-    setLocating(true)
-    try {
-      const position = await getCurrentPosition()
-      const place = await register.mutateAsync({ name: trimmed, ...position })
-      onAdded(place.placeId)
-    } catch (e) {
-      setError(e)
-    } finally {
-      setLocating(false)
-    }
+  const onAdd = () => {
+    if (!center) return
+    register.mutate({ name: trimmed, ...center }, { onSuccess: (place) => onAdded(place.placeId) })
   }
 
+  const error = register.error
   const duplicated = error instanceof ApiError && error.code === 'CREW_PLACE_NAME_DUPLICATED'
 
   return (
@@ -176,14 +178,20 @@ function AddPlaceForm({ crewId, onAdded, onCancel }: { crewId: number; onAdded: 
         error={duplicated ? '이미 같은 이름의 장소가 있어요. 위 목록에서 골라 주세요.' : undefined}
         autoFocus
       />
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-sub">지도를 움직여 핀을 장소에 맞춰 주세요.</p>
+        <Suspense fallback={<div className="flex h-64 items-center justify-center rounded-xl bg-surface text-sm text-muted">지도를 불러오는 중…</div>}>
+          <PlaceMap places={places} onCenterChange={setCenter} className="h-64" />
+        </Suspense>
+      </div>
       {error != null && !duplicated && <p className="text-sm text-red-600">{errorMessage(error)}</p>}
       <div className="flex gap-2">
         <Button variant="ghost" onClick={onCancel}>
           취소
         </Button>
-        <Button className="flex-1" loading={locating} disabled={trimmed.length === 0} onClick={onAdd}>
-          <LocateFixed className="size-5" />
-          현재 위치로 추가
+        <Button className="flex-1" loading={register.isPending} disabled={trimmed.length === 0 || !center} onClick={onAdd}>
+          <MapPin className="size-5" />
+          이 위치로 추가
         </Button>
       </div>
     </div>
