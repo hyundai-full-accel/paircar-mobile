@@ -11,7 +11,8 @@ import { Page } from '../components/Page'
 import { EmptyView, ErrorView, LoadingView } from '../components/StatusView'
 import { useAttendances, useChangeAttendance } from '../hooks/useAttendance'
 import { useCrewView, useCurrentTrip } from '../hooks/useCrew'
-import { useCrewPlaces } from '../hooks/usePlaces'
+import { useCreatePlace, useCrewPlaces } from '../hooks/usePlaces'
+import { PlaceChooser } from '../components/PlaceChooser'
 import { useTripRequest } from '../hooks/useTrip'
 import { cn } from '../lib/cn'
 import { formatServiceDate, todayKst, upcomingCarpoolDays } from '../lib/dates'
@@ -81,6 +82,7 @@ function RequestForm({ crew, me, trip, places }: RequestFormProps) {
   const mine = dayAttendance.data?.find((it) => it.crewMemberId === me.crewMemberId)
   const dayPlaceId = mine?.boardPlace && mine.boardPlace.placeId !== me.boardPlace?.placeId ? mine.boardPlace.placeId : null
 
+  const createPlace = useCreatePlace(crew.crewId)
   const tripRequest = useTripRequest(trip?.tripId ?? 0, me.crewMemberId)
   const attendance = useChangeAttendance(crew.crewId, me.crewMemberId)
   const pending = tripRequest.delay.isPending || tripRequest.cancel.isPending || tripRequest.changePlace.isPending || attendance.isPending
@@ -143,20 +145,14 @@ function RequestForm({ crew, me, trip, places }: RequestFormProps) {
       {type === 'place' && (
         <section className="flex flex-col gap-3">
           <h2 className="text-[17px] font-bold">어디서 탈까요?</h2>
-          <select
-            aria-label="새 승차 지점"
-            value={placeId ?? ''}
-            onChange={(e) => setPlaceId(e.target.value ? Number(e.target.value) : null)}
-            className="h-13 rounded-xl bg-surface px-4 text-base outline-none focus:ring-2 focus:ring-ink"
-          >
-            {places
-              .filter((it) => it.placeId !== currentPlaceId)
-              .map((it) => (
-                <option key={it.placeId} value={it.placeId}>
-                  {it.name}
-                </option>
-              ))}
-          </select>
+          <PlaceChooser
+            label="승차 지점"
+            places={places}
+            selectedId={placeId}
+            onSelect={setPlaceId}
+            onCreate={createPlace}
+            excludeIds={[currentPlaceId]}
+          />
         </section>
       )}
 
@@ -187,6 +183,6 @@ function RequestForm({ crew, me, trip, places }: RequestFormProps) {
 function blockedReason(type: RequestType, mode: string, placeId: number | null): string | null {
   if (mode === 'boarded') return '이미 탔어요. 내린 뒤에 바꿀 수 있어요.'
   if (mode === 'excluded') return '오늘 운행에서 이미 빠졌어요.'
-  if (type === 'place' && placeId === null) return '바꿀 수 있는 다른 장소가 없어요. 내 크루 관리에서 장소를 추가해 주세요.'
+  if (type === 'place' && placeId === null) return '탈 곳을 고르거나 지도에서 새 장소를 추가해 주세요.'
   return null
 }

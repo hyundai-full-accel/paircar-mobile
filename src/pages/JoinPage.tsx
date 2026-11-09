@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleCheck, LinkIcon } from 'lucide-react'
-import { useState, type SelectHTMLAttributes } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useParams, useSearchParams } from 'react-router'
 import { z } from 'zod'
@@ -13,10 +13,11 @@ import { SectionCard } from '../components/Card'
 import { CheckRow } from '../components/Choice'
 import { Hero } from '../components/Hero'
 import { InfoList, InfoRow } from '../components/InfoRow'
+import { PlaceChooser, type NewPlace } from '../components/PlaceChooser'
 import { Page } from '../components/Page'
 import { ErrorView, LoadingView } from '../components/StatusView'
 import { TextField } from '../components/TextField'
-import { useInvite, useJoinAsMember, useJoinCrew, type JoinForm } from '../hooks/useInvite'
+import { useInvite, useJoinAsMember, useJoinCrew, type DraftPlace, type JoinForm } from '../hooks/useInvite'
 import { errorMessage } from '../lib/errors'
 import { formatClock, formatDays, formatDotDate } from '../lib/format'
 import { getToken } from '../lib/token'
@@ -29,7 +30,7 @@ export function JoinPage() {
   const { code = '' } = useParams()
   const [isMember] = useState(() => getToken() !== null) // 참여 중 토큰이 생겨도 흐름이 바뀌지 않게 처음 값으로 고정
   const [searchParams, setSearchParams] = useSearchParams()
-  const [form, setForm] = useState<JoinForm>({ nickname: '', boardPlaceId: null, alightPlaceId: null })
+  const [form, setForm] = useState<JoinForm>({ nickname: '', boardPlaceId: null, alightPlaceId: null, newPlaces: [] })
   const { data: invite, isPending, error, refetch } = useInvite(code)
 
   const requested = Number(searchParams.get('step') ?? '1')
@@ -150,30 +151,41 @@ function JoinAsMemberButton({ code, crewId }: { code: string; crewId: number }) 
   )
 }
 
-const infoSchema = z
-  .object({
-    nickname: z.string().trim().min(1, '이름을 입력해 주세요.').max(30, '30자까지 쓸 수 있어요.'),
-    boardPlaceId: z.number().nullable(),
-    alightPlaceId: z.number().nullable(),
-  })
-  .refine((it) => it.boardPlaceId === null || it.boardPlaceId !== it.alightPlaceId, {
-    message: '탈 곳과 내릴 곳이 같아요.',
-    path: ['alightPlaceId'],
-  })
+const infoSchema = z.object({
+  nickname: z.string().trim().min(1, '이름을 입력해 주세요.').max(30, '30자까지 쓸 수 있어요.'),
+})
 
-// 빈 선택("")은 null, 나머지는 장소 ID 숫자로
-const placeIdValue = { setValueAs: (v: string | number | null) => (v === '' || v === null ? null : Number(v)) }
-
-// 2/3 참여 정보 등록: 크루에서 쓸 이름, 평소 탈 곳·내릴 곳 (크루 장소에서 고름)
+// 2/3 참여 정보 등록: 크루에서 쓸 이름, 평소 탈 곳·내릴 곳
+// 크루 장소에서 고르거나, 지도에서 위치를 찍고 이름을 붙여 새로 정할 수 있음 (새 장소는 참여할 때 크루 장소로 등록됨)
 function InfoStep({ places, initial, onNext }: { places: CrewPlace[]; initial: JoinForm; onNext: (value: JoinForm) => void }) {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<JoinForm>({ resolver: zodResolver(infoSchema), defaultValues: initial })
+  } = useForm<{ nickname: string }>({ resolver: zodResolver(infoSchema), defaultValues: { nickname: initial.nickname } })
+  const [boardPlaceId, setBoardPlaceId] = useState(initial.boardPlaceId)
+  const [alightPlaceId, setAlightPlaceId] = useState(initial.alightPlaceId)
+  const [drafts, setDrafts] = useState<DraftPlace[]>(initial.newPlaces)
+
+  const allPlaces = [...places, ...drafts]
+  const samePlace = boardPlaceId !== null && boardPlaceId === alightPlaceId
+
+  // 새 장소는 음수 임시 ID로 이 화면이 들고 있음
+  const addDraft = async (place: NewPlace) => {
+    const placeId = Math.min(0, ...drafts.map((it) => it.placeId)) - 1
+    setDrafts((list) => [...list, { placeId, ...place }])
+    return placeId
+  }
+
+  const submit = handleSubmit(({ nickname }) => {
+    if (samePlace) return
+    // 고르지 않은 새 장소는 등록하지 않음
+    const newPlaces = drafts.filter((it) => it.placeId === boardPlaceId || it.placeId === alightPlaceId)
+    onNext({ nickname: nickname.trim(), boardPlaceId, alightPlaceId, newPlaces })
+  })
 
   return (
-    <form onSubmit={handleSubmit(onNext)} className="flex flex-col gap-7 pt-2" noValidate>
+    <form onSubmit={submit} className="flex flex-col gap-7 pt-2" noValidate>
       <div className="flex flex-col gap-1">
         <h2 className="text-xl font-bold">참여 정보 등록</h2>
         <p className="text-sm text-sub">크루와 연결할 이름, 승하차 지점을 확인해요.</p>
@@ -186,48 +198,29 @@ function InfoStep({ places, initial, onNext }: { places: CrewPlace[]; initial: J
         error={errors.nickname?.message}
         {...register('nickname')}
       />
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4">
         <span className="text-[15px] font-semibold">승하차 지점</span>
-        {places.length === 0 ? (
-          <p className="rounded-xl bg-surface p-4 text-sm text-sub">크루에 아직 장소가 없어요. 참여한 뒤 내 크루 관리에서 정할 수 있어요.</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            <PlaceSelect label="탈 곳" places={places} {...register('boardPlaceId', placeIdValue)} />
-            <PlaceSelect label="내릴 곳" places={places} {...register('alightPlaceId', placeIdValue)} />
-          </div>
-        )}
-        {errors.alightPlaceId && <p className="text-sm text-red-600">{errors.alightPlaceId.message}</p>}
-        <p className="pt-2 text-sm leading-relaxed text-sub">
+        <section className="flex flex-col gap-1">
+          <h3 className="text-sm font-semibold text-sub">어디서 탈까요?</h3>
+          <PlaceChooser label="탈 곳" places={allPlaces} selectedId={boardPlaceId} onSelect={setBoardPlaceId} onCreate={addDraft} />
+        </section>
+        <section className="flex flex-col gap-1">
+          <h3 className="text-sm font-semibold text-sub">어디서 내릴까요?</h3>
+          <PlaceChooser label="내릴 곳" places={allPlaces} selectedId={alightPlaceId} onSelect={setAlightPlaceId} onCreate={addDraft} />
+        </section>
+        {samePlace && <p className="text-sm text-red-600">탈 곳과 내릴 곳이 같아요.</p>}
+        <p className="text-sm leading-relaxed text-sub">
           등록한 승하차 지점은 운전자와 공유돼요.
           <br />
           오늘만 변경할 때는 오늘의 카풀에서 수정해요.
         </p>
       </div>
       <BottomBar>
-        <Button type="submit" block>
+        <Button type="submit" block disabled={samePlace}>
           이 정보로 계속
         </Button>
       </BottomBar>
     </form>
-  )
-}
-
-type PlaceSelectProps = SelectHTMLAttributes<HTMLSelectElement> & { label: string; places: CrewPlace[] }
-
-function PlaceSelect({ label, places, ...props }: PlaceSelectProps) {
-  return (
-    <select
-      aria-label={label}
-      className="h-13 w-full rounded-xl bg-surface px-3 text-[15px] outline-none focus:ring-2 focus:ring-ink"
-      {...props}
-    >
-      <option value="">{label} 선택</option>
-      {places.map((place) => (
-        <option key={place.placeId} value={place.placeId}>
-          {place.name}
-        </option>
-      ))}
-    </select>
   )
 }
 

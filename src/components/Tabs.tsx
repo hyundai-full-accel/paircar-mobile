@@ -6,7 +6,11 @@ type Option = { value: string; label: string }
 // 월 탭 (시안 "5월 6월 ... 10월", 선택된 달은 파란 글자 + 점). 선택된 탭이 보이게 가로로 밀어 둠
 export function MonthTabs({ options, value, onChange }: { options: Option[]; value: string; onChange: (value: string) => void }) {
   const selected = useRef<HTMLButtonElement>(null)
-  useEffect(() => selected.current?.scrollIntoView({ inline: 'center', block: 'nearest' }), [value])
+  // 중괄호로 감싸 아무것도 돌려주지 않음. 최신 크롬은 scrollIntoView가 Promise를 돌려줘서,
+  // 그대로 돌려주면 React가 정리 함수로 알고 불러 "destroy is not a function"으로 죽음
+  useEffect(() => {
+    selected.current?.scrollIntoView({ inline: 'center', block: 'nearest' })
+  }, [value])
 
   return (
     <div role="tablist" className="-mx-5 flex gap-1 overflow-x-auto px-5 [scrollbar-width:none]">

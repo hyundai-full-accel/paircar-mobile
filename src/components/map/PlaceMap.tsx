@@ -8,7 +8,7 @@ import { Spinner } from '../Spinner'
 import { createMap, fitTo, maplibregl, toLngLat } from './mapBase'
 
 type PlaceMapProps = {
-  places: CrewPlace[] // 이미 등록된 크루 장소 (점으로 표시)
+  places: Pick<CrewPlace, 'placeId' | 'name' | 'latitude' | 'longitude'>[] // 이미 있는 장소 (점으로 표시)
   onCenterChange: (center: Coordinates) => void // 가운데 핀이 가리키는 곳
   className?: string
 }
@@ -88,7 +88,7 @@ export default function PlaceMap({ places, onCenterChange, className }: PlaceMap
           aria-label="현재 위치로 이동"
           onClick={locate}
           disabled={locating}
-          className="absolute right-3 bottom-8 flex size-11 items-center justify-center rounded-full bg-white text-ink shadow-md active:bg-surface"
+          className="absolute top-3 right-3 flex size-11 items-center justify-center rounded-full bg-white text-ink shadow-md active:bg-surface"
         >
           {locating ? <Spinner /> : <LocateFixed className="size-5" />}
         </button>

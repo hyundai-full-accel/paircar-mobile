@@ -20,6 +20,12 @@ export function useRegisterPlace(crewId: number) {
   })
 }
 
+// 장소 고르기(PlaceChooser)의 "지도에서 새 장소 추가": 크루 장소로 바로 등록하고 새 ID를 돌려줌
+export function useCreatePlace(crewId: number) {
+  const register = useRegisterPlace(crewId)
+  return async (place: NewPlace) => (await register.mutateAsync(place)).placeId
+}
+
 // 평소 탈 곳, 내릴 곳, 픽업 시각(HH:mm) 전체 값. 안 보낸 값은 지워짐
 export type MemberPlaces = { boardPlaceId: number | null; alightPlaceId: number | null; pickupTime: string | null }
 

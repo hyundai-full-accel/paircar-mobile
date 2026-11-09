@@ -7,7 +7,8 @@ import { Spinner } from '../components/Spinner'
 import { EmptyView, ErrorView, LoadingView } from '../components/StatusView'
 import { useAttendances, useChangeAttendance } from '../hooks/useAttendance'
 import { useCrew, useMyCrewMember } from '../hooks/useCrew'
-import { useCrewPlaces } from '../hooks/usePlaces'
+import { useCreatePlace, useCrewPlaces } from '../hooks/usePlaces'
+import { PlaceChooser } from '../components/PlaceChooser'
 import { cn } from '../lib/cn'
 import { upcomingCarpoolDays, formatServiceDate } from '../lib/dates'
 import { errorMessage } from '../lib/errors'
@@ -66,6 +67,7 @@ type DayCardProps = {
 
 function DayCard({ crewId, date, member, places, query }: DayCardProps) {
   const change = useChangeAttendance(crewId, member.crewMemberId)
+  const createPlace = useCreatePlace(crewId)
   const mine = query.data?.find((it) => it.crewMemberId === member.crewMemberId)
   const defaultPlaceId = member.boardPlace?.placeId ?? null
   // 그날만 바꾼 탈 곳. 평소 탈 곳과 같으면 바꾸지 않은 것
@@ -94,24 +96,19 @@ function DayCard({ crewId, date, member, places, query }: DayCardProps) {
             </Segment>
           </div>
           {mine.attending && (
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm text-sub">이날 탈 곳</span>
-              <select
-                value={overridePlaceId ?? ''}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm text-sub">이날 어디서 탈까요?</span>
+              <PlaceChooser
+                label={`${formatServiceDate(date)} 탈 곳`}
+                places={places}
+                selectedId={overridePlaceId}
+                onSelect={(placeId) => set(true, placeId)}
+                onCreate={createPlace}
+                noneLabel={member.boardPlace ? `평소처럼 (${member.boardPlace.name})` : '평소 탈 곳 없음'}
+                excludeIds={[defaultPlaceId]}
                 disabled={change.isPending}
-                onChange={(e) => set(true, e.target.value ? Number(e.target.value) : null)}
-                className="h-12 rounded-xl border border-line bg-white px-3 text-base outline-none focus:border-brand"
-              >
-                <option value="">{member.boardPlace ? `평소처럼 (${member.boardPlace.name})` : '평소 탈 곳 없음'}</option>
-                {places
-                  .filter((place) => place.placeId !== defaultPlaceId)
-                  .map((place) => (
-                    <option key={place.placeId} value={place.placeId}>
-                      {place.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
+              />
+            </div>
           )}
           {change.error && <p className="text-sm text-red-600">{errorMessage(change.error)}</p>}
         </>

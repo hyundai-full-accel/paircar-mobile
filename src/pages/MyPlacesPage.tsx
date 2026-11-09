@@ -1,30 +1,16 @@
-import { Check, MapPin, Plus } from 'lucide-react'
-import { lazy, Suspense, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { ApiError } from '../api/client'
 import type { CrewMember, CrewPlace } from '../api/types'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Page } from '../components/Page'
+import { PlaceChooser } from '../components/PlaceChooser'
 import { EmptyView, ErrorView, LoadingView } from '../components/StatusView'
-import { TextField } from '../components/TextField'
 import { useCrewMembers } from '../hooks/useCrew'
 import { useMe } from '../hooks/useMe'
-import { useChangeMemberPlaces, useCrewPlaces, useRegisterPlace } from '../hooks/usePlaces'
-import { cn } from '../lib/cn'
+import { useChangeMemberPlaces, useCrewPlaces, useCreatePlace } from '../hooks/usePlaces'
 import { errorMessage } from '../lib/errors'
-import type { Coordinates } from '../lib/location'
 import { NotFoundPage } from './NotFoundPage'
-
-// 지도 라이브러리가 커서 장소를 추가할 때만 불러옴
-const PlaceMap = lazy(() => import('../components/map/PlaceMap'))
-
-type AddPlaceFormProps = {
-  crewId: number
-  places: CrewPlace[]
-  onAdded: (placeId: number) => void
-  onCancel: () => void
-}
 
 // 평소 탈 곳, 내릴 곳. 운전자는 출발 전에 이 값(과 그날 출석)으로 경유지를 정함
 export function MyPlacesPage() {
@@ -64,6 +50,7 @@ function MyPlacesForm({ crewId, member, places }: { crewId: number; member: Crew
   const [boardPlaceId, setBoardPlaceId] = useState(member.boardPlace?.placeId ?? null)
   const [alightPlaceId, setAlightPlaceId] = useState(member.alightPlace?.placeId ?? null)
   const save = useChangeMemberPlaces(crewId, member.crewMemberId)
+  const createPlace = useCreatePlace(crewId)
 
   const unchanged = boardPlaceId === (member.boardPlace?.placeId ?? null) && alightPlaceId === (member.alightPlace?.placeId ?? null)
   const samePlace = boardPlaceId !== null && boardPlaceId === alightPlaceId
@@ -74,126 +61,22 @@ function MyPlacesForm({ crewId, member, places }: { crewId: number; member: Crew
   return (
     <>
       <p className="px-1 text-sm text-sub">
-        운전자가 출발 전에 이 장소로 경유지를 잡아요. 그날만 다른 곳에서 탈 때는 출석에서 바꾸면 돼요.
+        운전자가 출발 전에 이 장소로 경유지를 잡아요. 목록에 없으면 지도에서 직접 찍어 새 장소로 추가해요. 그날만 다른 곳에서 탈 때는 출석에서
+        바꾸면 돼요.
       </p>
-      <PlacePicker crewId={crewId} title="탈 곳" places={places} selectedId={boardPlaceId} onSelect={setBoardPlaceId} />
-      <PlacePicker crewId={crewId} title="내릴 곳" places={places} selectedId={alightPlaceId} onSelect={setAlightPlaceId} />
+      <Card className="flex flex-col gap-2">
+        <h2 className="font-semibold">어디서 탈까요?</h2>
+        <PlaceChooser label="탈 곳" places={places} selectedId={boardPlaceId} onSelect={setBoardPlaceId} onCreate={createPlace} />
+      </Card>
+      <Card className="flex flex-col gap-2">
+        <h2 className="font-semibold">어디서 내릴까요?</h2>
+        <PlaceChooser label="내릴 곳" places={places} selectedId={alightPlaceId} onSelect={setAlightPlaceId} onCreate={createPlace} />
+      </Card>
       {samePlace && <p className="text-sm text-red-600">탈 곳과 내릴 곳이 같아요.</p>}
       {save.error && <p className="text-sm text-red-600">{errorMessage(save.error)}</p>}
       <Button block loading={save.isPending} disabled={unchanged || samePlace} onClick={onSave}>
         저장
       </Button>
     </>
-  )
-}
-
-type PlacePickerProps = {
-  crewId: number
-  title: string
-  places: CrewPlace[]
-  selectedId: number | null
-  onSelect: (placeId: number) => void
-}
-
-function PlacePicker({ crewId, title, places, selectedId, onSelect }: PlacePickerProps) {
-  const [adding, setAdding] = useState(false)
-
-  return (
-    <Card className="flex flex-col gap-2">
-      <h2 className="font-semibold">{title}</h2>
-      {places.length > 0 && (
-        <div role="radiogroup" aria-label={title} className="flex flex-col gap-1">
-          {places.map((place) => {
-            const selected = place.placeId === selectedId
-            return (
-              <button
-                key={place.placeId}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => onSelect(place.placeId)}
-                className={cn(
-                  'flex h-12 items-center gap-3 rounded-xl px-3 text-left transition-colors',
-                  selected ? 'bg-brand-soft font-semibold text-brand' : 'active:bg-surface',
-                )}
-              >
-                <span
-                  className={cn(
-                    'flex size-5 shrink-0 items-center justify-center rounded-full border-2',
-                    selected ? 'border-brand bg-brand text-white' : 'border-line',
-                  )}
-                >
-                  {selected && <Check className="size-3" strokeWidth={3} />}
-                </span>
-                <span className="truncate">{place.name}</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
-      {adding ? (
-        <AddPlaceForm
-          crewId={crewId}
-          places={places}
-          onAdded={(placeId) => {
-            onSelect(placeId)
-            setAdding(false)
-          }}
-          onCancel={() => setAdding(false)}
-        />
-      ) : (
-        <Button variant="ghost" className="justify-start px-3 text-brand" onClick={() => setAdding(true)}>
-          <Plus className="size-5" />
-          새 장소 추가
-        </Button>
-      )}
-    </Card>
-  )
-}
-
-// 지도에서 고른 곳을 이름 붙여 크루 장소로 등록. 지도 오른쪽 아래 버튼으로 내 위치로 옮길 수 있음
-function AddPlaceForm({ crewId, places, onAdded, onCancel }: AddPlaceFormProps) {
-  const [name, setName] = useState('')
-  const [center, setCenter] = useState<Coordinates | null>(null)
-  const register = useRegisterPlace(crewId)
-
-  const trimmed = name.trim()
-
-  const onAdd = () => {
-    if (!center) return
-    register.mutate({ name: trimmed, ...center }, { onSuccess: (place) => onAdded(place.placeId) })
-  }
-
-  const error = register.error
-  const duplicated = error instanceof ApiError && error.code === 'CREW_PLACE_NAME_DUPLICATED'
-
-  return (
-    <div className="flex flex-col gap-3 rounded-xl bg-surface-soft p-3">
-      <TextField
-        label="장소 이름"
-        placeholder="예: ○○아파트 정문"
-        maxLength={50}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        error={duplicated ? '이미 같은 이름의 장소가 있어요. 위 목록에서 골라 주세요.' : undefined}
-        autoFocus
-      />
-      <div className="flex flex-col gap-2">
-        <p className="text-sm text-sub">지도를 움직여 핀을 장소에 맞춰 주세요.</p>
-        <Suspense fallback={<div className="flex h-64 items-center justify-center rounded-xl bg-surface text-sm text-muted">지도를 불러오는 중…</div>}>
-          <PlaceMap places={places} onCenterChange={setCenter} className="h-64" />
-        </Suspense>
-      </div>
-      {error != null && !duplicated && <p className="text-sm text-red-600">{errorMessage(error)}</p>}
-      <div className="flex gap-2">
-        <Button variant="ghost" onClick={onCancel}>
-          취소
-        </Button>
-        <Button className="flex-1" loading={register.isPending} disabled={trimmed.length === 0 || !center} onClick={onAdd}>
-          <MapPin className="size-5" />
-          이 위치로 추가
-        </Button>
-      </div>
-    </div>
   )
 }
